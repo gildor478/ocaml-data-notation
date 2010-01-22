@@ -1,0 +1,26 @@
+OASISFormat:  1.0
+OCamlVersion: >= 3.11.1
+Name:         ocaml-data-notation
+Version:      0.0.1
+Synopsis:     store data using OCaml notation
+Authors:      Sylvain Le Gall
+License:      LGPL-LINK-EXN
+Plugins:      DevFiles
+
+Library odn
+  Path:    src
+  Modules: ODN
+  
+Library pa_odn
+  Path:         src
+  Modules:      Pa_odn
+  BuildDepends: type-conv (>= 1.6.10), camlp4.lib, camlp4.quotations.o 
+  
+Executable test
+  MainIs:       tests/test.ml
+  Install:      false
+  BuildDepends: oUnit, fileutils
+  
+Test main
+  Type:    custom
+  Command: _build/tests/test

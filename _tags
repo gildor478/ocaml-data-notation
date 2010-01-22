@@ -1,0 +1,14 @@
+# AUTOBUILD_START
+# DO NOT EDIT (digest: bd0937c20aae424653e62ef1f44dd1fa)
+# Library pa_odn
+<src/*.ml>: pkg_type-conv
+<src/*.ml>: pkg_camlp4.lib
+<src/*.ml>: pkg_camlp4.quotations.o
+# Library odn
+# Executable test
+<tests/*.ml>: pkg_oUnit
+<tests/*.ml>: pkg_fileutils
+<tests/test.byte>: pkg_oUnit
+<tests/test.byte>: pkg_fileutils
+# AUTOBUILD_STOP
+<src/pa_odn.ml>: syntax_camlp4o
