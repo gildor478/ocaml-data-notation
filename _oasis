@@ -5,7 +5,7 @@ Version:      0.0.1
 Synopsis:     store data using OCaml notation
 Authors:      Sylvain Le Gall
 License:      LGPL-LINK-EXN
-Plugins:      DevFiles
+Plugins:      DevFiles, META
 
 Library odn
   Path:    src
@@ -14,12 +14,19 @@ Library odn
 Library pa_odn
   Path:         src
   Modules:      Pa_odn
-  BuildDepends: type-conv (>= 1.6.10), camlp4.lib, camlp4.quotations.o 
+  Parent:       odn
+  BuildDepends: type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
+
+Library pa_noodn
+  Path:         src
+  Modules:      Pa_noodn
+  Parent:       odn
+  BuildDepends: type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
   
 Executable test
   MainIs:       tests/test.ml
   Install:      false
-  BuildDepends: oUnit, fileutils
+  BuildDepends: oUnit, fileutils, odn, str
   
 Test main
   Type:    custom

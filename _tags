@@ -1,5 +1,6 @@
 # AUTOBUILD_START
-# DO NOT EDIT (digest: bd0937c20aae424653e62ef1f44dd1fa)
+# DO NOT EDIT (digest: 4d88c6a2448cfdd4cd71d16dc80a2afc)
+# Library pa_noodn
 # Library pa_odn
 <src/*.ml>: pkg_type-conv
 <src/*.ml>: pkg_camlp4.lib
@@ -8,7 +9,15 @@
 # Executable test
 <tests/*.ml>: pkg_oUnit
 <tests/*.ml>: pkg_fileutils
+<tests/*.ml>: use_odn
+<tests/*.ml>: pkg_str
 <tests/test.byte>: pkg_oUnit
 <tests/test.byte>: pkg_fileutils
+<tests/test.byte>: use_odn
+<tests/test.byte>: pkg_str
 # AUTOBUILD_STOP
 <src/pa_odn.ml>: syntax_camlp4o
+<src/pa_noodn.ml>: syntax_camlp4o
+# TODO: remove
+<tests/*.ml>: pkg_str
+<tests/test.byte>: pkg_str

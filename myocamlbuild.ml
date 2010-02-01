@@ -1,15 +1,14 @@
 (* AUTOBUILD_START *)
-(* DO NOT EDIT (digest: da2d90e9a2b2e4ac352a3139e3debe1a) *)
-module BaseEnvLight =
-struct
-# 1 "/home/gildor/programmation/ocaml-autobuild/src/base/BaseEnvLight.ml"
+(* DO NOT EDIT (digest: d805496b8bd157a66f944620a8a5b644) *)
+module BaseEnvLight = struct
+# 0 "/home/gildor/programmation/ocaml-autobuild/src/base/BaseEnvLight.ml"
   
   (** Simple environment, allowing only to read values
     *)
   
-  module MapString = Map.Make(String);;
+  module MapString = Map.Make(String)
   
-  type t = string MapString.t;;
+  type t = string MapString.t
   
   (** Environment default file 
     *)
@@ -17,7 +16,6 @@ struct
     Filename.concat 
       (Filename.dirname Sys.argv.(0))
       "setup.data"
-  ;;
   
   (** Load environment.
     *)
@@ -54,7 +52,6 @@ struct
              "Unable to load environment, the file '%s' doesn't exist."
              filename)
       end
-  ;;
   
   (** Get a variable that evaluate expression that can be found in it (see
       {!Buffer.add_substitute}.
@@ -79,14 +76,12 @@ struct
         Buffer.contents buff
     in
       var_expand (MapString.find name env)
-  ;;
-end;;
+end
 
 
-# 86 "myocamlbuild.ml"
-module OCamlbuildFindlib =
-struct
-# 1 "/home/gildor/programmation/ocaml-autobuild/src/ocamlbuild/OCamlbuildFindlib.ml"
+# 82 "myocamlbuild.ml"
+module OCamlbuildFindlib = struct
+# 0 "/home/gildor/programmation/ocaml-autobuild/src/ocamlbuild/OCamlbuildFindlib.ml"
   (** OCamlbuild extension, copied from 
     * http://brion.inria.fr/gallium/index.php/Using_ocamlfind_with_ocamlbuild
     * by N. Pouillard and others
@@ -190,11 +185,10 @@ struct
       | _ -> 
           ()
   
-end;;
+end
 
-module OCamlbuildBase =
-struct
-# 1 "/home/gildor/programmation/ocaml-autobuild/src/ocamlbuild/OCamlbuildBase.ml"
+module OCamlbuildBase = struct
+# 0 "/home/gildor/programmation/ocaml-autobuild/src/ocamlbuild/OCamlbuildBase.ml"
   
   (** Base functions for writing myocamlbuild.ml
       @author Sylvain Le Gall
@@ -210,14 +204,12 @@ struct
         lib_ocaml: (name * dir list) list;
         lib_c:     (name * dir) list; 
       }
-  ;;
   
   let dispatch_combine lst =
     fun e ->
       List.iter 
         (fun dispatch -> dispatch e)
         lst 
-  ;;
   
   let dispatch t = 
     function
@@ -282,7 +274,6 @@ struct
             t.lib_c
       | _ -> 
           ()
-  ;;
   
   let dispatch_default t =
     dispatch_combine 
@@ -290,17 +281,20 @@ struct
         dispatch t;
         OCamlbuildFindlib.dispatch;
       ]
-  ;;
-end;;
+end
 
 
-# 297 "myocamlbuild.ml"
+# 287 "myocamlbuild.ml"
 let package_default =
   {
-    OCamlbuildBase.lib_ocaml =
-      ([("src/pa_odn", ["src"]); ("src/odn", ["src"])]);
-    OCamlbuildBase.lib_c = ([]);
-    }
+     OCamlbuildBase.lib_ocaml =
+       [
+          ("src/pa_noodn", ["src"]);
+          ("src/pa_odn", ["src"]);
+          ("src/odn", ["src"])
+       ];
+     lib_c = [];
+     }
   ;;
 
 let dispatch_default = OCamlbuildBase.dispatch_default package_default;;

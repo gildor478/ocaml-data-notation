@@ -11,6 +11,7 @@
 type module_name  = string
 type field_name   = string
 type variant_name = string
+type var_name     = string
 
 type t = 
   (** Record *)
@@ -31,6 +32,10 @@ type t =
   | TPL of t list
   (** Unit () *)
   | UNT
+  (** Function application *)
+  | APP of var_name * (var_name * t) list * t list 
+  (** Variable *)
+  | VAR of var_name
 
 (** {2 Basic conversion} 
   *)
@@ -70,13 +75,19 @@ let of_tuple4 (f1, f2, f3, f4) (v1, v2, v3, v4) =
 let of_tuple5 (f1, f2, f3, f4, f5) (v1, v2, v3, v4, v5) = 
   TPL [f1 v1; f2 v2; f3 v3; f4 v4; f5 v5]
 
-
 (** {2 Formating}
   *)
 
 open Format
 
-let pp_odn fmt t =
+let pp_odn ?(opened_modules=[]) fmt t =
+
+  let opened_modules = 
+    (* Use opened modules starting with the bigger *)
+    List.sort 
+      (fun mod1 mod2 -> String.length mod2 - String.length mod1)
+      opened_modules
+  in
 
   let pp_list pp_elem lst_sep fmt =
     function
@@ -91,66 +102,131 @@ let pp_odn fmt t =
             tl
   in
 
+  let pp_print_id fmt id =  
+    let chop_opened_module str =
+      try
+        let str_len =
+          String.length str
+        in
+
+        let matching_opened_mod =
+          List.find
+            (fun opened_mod ->
+               let opened_mod_len =
+                 String.length opened_mod
+               in
+                 if opened_mod_len + 1 <= str_len then
+                   (opened_mod = String.sub str 0 opened_mod_len)
+                   &&
+                   str.[opened_mod_len] = '.'
+                 else
+                   false)
+            opened_modules
+        in
+
+        let chop_prefix_len =
+          (String.length matching_opened_mod) + 1
+        in
+
+          String.sub str chop_prefix_len (str_len - chop_prefix_len)
+            
+      with Not_found ->
+        str
+    in
+      pp_print_string fmt (chop_opened_module id)
+  in
+
   let rec pp_odn_aux fmt =
     function
-      | REC (mod_nm, lst) ->
-          fprintf fmt "@[{@[<hv1>@,";
-          List.iter
-            (fun (fld, e) ->
-               fprintf fmt "@[<hv2>%s.%s =@ %a@];@ " 
-                 mod_nm fld pp_odn_aux e)
-            lst;
-          fprintf fmt "@]@,}@]"
+      | REC (mod_nm, flds) ->
+          begin
+            match flds with 
+              | (hd_fld, hd_e) :: tl ->
+                  (* We get the first field to add
+                   * the module name at the beginning
+                   *)
+                  begin
+                    let pp_field fmt (fld, e) =
+                      fprintf fmt 
+                        "@[<hv 2>%a =@ %a@];@ " 
+                        pp_print_id fld 
+                        pp_odn_aux e
+                    in
+
+                    fprintf fmt "@[{@[<hv 2>@,";
+                    pp_field fmt (mod_nm^"."^hd_fld, hd_e);
+                    List.iter (pp_field fmt) tl;
+                    fprintf fmt "@]@,}@]"
+                  end
+
+              | [] ->
+                  fprintf fmt "{}"
+          end
+
       | LST lst ->
-          fprintf fmt "@[[@[<hv1>@,%a@]@,]@]"
+          fprintf fmt "@[[@[<hv 2>@,%a@]@,]@]"
             (pp_list pp_odn_aux ";@ ") lst
       | STR str ->
           fprintf fmt "%S" str
       | VRT (nm, []) ->
-          pp_print_string fmt nm
+          pp_print_id fmt nm
       | VRT (nm, lst) ->
-          pp_open_hvbox fmt 2;
-          pp_print_string fmt nm;
-          pp_print_space fmt ();
-          pp_odn_aux fmt (TPL lst);
-          pp_close_box fmt ()
+          fprintf fmt
+            "@[<hv 2>%a@ %a@]"
+            pp_print_id nm
+            pp_odn_aux (TPL lst)
       | BOO b ->
           pp_print_bool fmt b
       | TPL [] ->
-          invalid_arg "BaseGenCode.TPL []"
-      | TPL [v] ->
+          pp_print_string fmt "()"
+      | TPL [(FLT _) as v] 
+      | TPL [(INT _) as v]
+      | TPL [(STR _) as v]
+      | TPL [(REC _) as v] 
+      | TPL [(LST _) as v] 
+      | TPL [(BOO _) as v] 
+      | TPL [UNT as v]
+      | TPL [(VAR _) as v] ->
           pp_odn_aux fmt v
-      | TPL (hd :: tl) ->
-          pp_open_hvbox fmt 2;
-          pp_print_char fmt '(';
-          pp_odn_aux fmt hd;
-          List.iter
-            (fun v ->
-               pp_print_char fmt ',';
-               pp_print_space fmt ();
-               pp_odn_aux fmt v)
-            tl;
-          pp_print_char fmt ')';
-          pp_close_box fmt ()
+      | TPL lst ->
+          fprintf fmt
+            "@[<hv 2>(%a)@]"
+            (pp_list pp_odn_aux ",@ ") lst
       | UNT ->
           pp_print_string fmt "()"
       | FLT f ->
           pp_print_float fmt f
       | INT i ->
           pp_print_int fmt i
+      | APP (fnm, named_args, args) ->
+          fprintf fmt
+            "@[<hv 2>%a%a%a@]"
+            pp_print_id fnm
+
+            (pp_list 
+               (fun fmt (nm, e) -> 
+                  fprintf fmt "@ ~%s:%a" nm pp_odn_aux e) "") 
+            named_args
+
+            (pp_list 
+               (fun fmt e -> 
+                  fprintf fmt "@ %a" pp_odn_aux e) "")
+            args
+      | VAR nm ->
+          pp_print_id fmt nm
   in
 
     pp_odn_aux fmt t
 
 
-let string_of_odn odn =
+let string_of_odn ?opened_modules odn =
   let buff = 
     Buffer.create 13
   in
   let fmt =
     formatter_of_buffer buff
   in
-    pp_odn fmt odn;
+    pp_odn ?opened_modules fmt odn;
     pp_print_flush fmt ();
     Buffer.contents buff
 

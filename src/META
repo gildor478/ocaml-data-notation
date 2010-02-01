@@ -1,0 +1,28 @@
+# AUTOBUILD_START
+# DO NOT EDIT (digest: cae1c9a8517f909b9e08623bad083a77)
+version = "0.0.1"
+requires = ""
+description = "store data using OCaml notation"
+archive(byte) = "odn.cma"
+archive(native) = "odn.cmxa"
+# AUTOBUILD_STOP
+
+package "with" (
+  package "syntax" (
+    version = "0.0.1"
+    requires = "type-conv.syntax, camlp4, odn"
+    description = "Syntax extension for odn"
+    archive(syntax, preprocessor) = "pa_odn.cma"
+    archive(syntax, toploop) = "pa_odn.cma"
+  )
+)
+
+package "without" (
+  package "syntax" (
+    version = "0.0.1"
+    requires = "type-conv.syntax, camlp4"
+    description = "Syntax extension that removes 'with odn'"
+    archive(syntax, preprocessor) = "pa_noodn.cma"
+    archive(syntax, toploop) = "pa_noodn.cma"
+  )
+)

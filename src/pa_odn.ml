@@ -1,4 +1,11 @@
 
+(** Syntax extension that adds function converting 
+    data into ODN.t using type declaration to guess
+    how to do.
+
+  @author Sylvain Le Gall
+  *)
+
 open Camlp4;;
 open PreCast;;
 open Ast;;
