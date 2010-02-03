@@ -2,7 +2,7 @@ OASISFormat:  1.0
 OCamlVersion: >= 3.11.1
 Name:         ocaml-data-notation
 Version:      0.0.1
-Synopsis:     store data using OCaml notation
+Synopsis:     Store data using OCaml notation
 Authors:      Sylvain Le Gall
 License:      LGPL-LINK-EXN
 Plugins:      DevFiles, META
@@ -12,16 +12,28 @@ Library odn
   Modules: ODN
   
 Library pa_odn
-  Path:         src
-  Modules:      Pa_odn
-  Parent:       odn
-  BuildDepends: type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
+  Path:              src
+  Modules:           Pa_odn
+  Parent:            odn
+  FindlibContainers: with
+  FindlibName:       syntax
+  BuildDepends:      type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
+  CompiledObject:    byte
+  XMETAType:         syntax
+  XMETARequires:     type-conv.syntax, camlp4, odn
+  XMETADescription:  Syntax extension for odn
 
 Library pa_noodn
-  Path:         src
-  Modules:      Pa_noodn
-  Parent:       odn
-  BuildDepends: type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
+  Path:              src
+  Modules:           Pa_noodn
+  Parent:            odn
+  FindlibContainers: without
+  FindlibName:       syntax
+  BuildDepends:      type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
+  CompiledObject:    byte
+  XMETAType:         syntax
+  XMETARequires:     type-conv.syntax, camlp4
+  XMETADescription:  Syntax extension that removes 'with odn'
   
 Executable test
   MainIs:       tests/test.ml

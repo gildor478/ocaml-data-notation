@@ -1,6 +1,6 @@
 #!/usr/bin/ocamlrun ocaml
 (* AUTOBUILD_START *)
-(* DO NOT EDIT (digest: 0910f8438b02a71566e39c7c5031d7bc) *)
+(* DO NOT EDIT (digest: ae4c3f2d134bf4302f42f3d0db6487b8) *)
 module CommonGettext = struct
 # 0 "/home/gildor/programmation/ocaml-autobuild/src/common/CommonGettext.ml"
   
@@ -340,6 +340,11 @@ module OASISTypes = struct
   type filename     = string 
   type prog         = string 
   
+  (* Package name for findlib, doesn't contain '.' *)
+  type findlib_name = string 
+  (* Package path, made of several findlib name concatenated with '.' *)
+  type findlib_path = string 
+  
   (** Version 
     *)
   type version =
@@ -384,7 +389,7 @@ module OASISTypes = struct
   (** Package dependency
     *)
   type dependency = 
-    | FindlibPackage of package_name * version_comparator option
+    | FindlibPackage of findlib_path * version_comparator option
     | InternalLibrary of name
     
   
@@ -430,18 +435,19 @@ module OASISTypes = struct
     *)
   type library = 
       {
-        lib_build:           bool conditional;
-        lib_install:         bool conditional;
-        lib_path:            dirname;
-        lib_modules:         string list;
-        lib_compiled_object: compiled_object;
-        lib_build_depends:   dependency list;
-        lib_build_tools:     prog list;
-        lib_c_sources:       filename list;
-        lib_data_files:      (filename * filename option) list;
-        lib_parent:          name option;
-        lib_findlib_name:    name option;
-        lib_schema_data:     PropList.Data.t;
+        lib_build:              bool conditional;
+        lib_install:            bool conditional;
+        lib_path:               dirname;
+        lib_modules:            string list;
+        lib_compiled_object:    compiled_object;
+        lib_build_depends:      dependency list;
+        lib_build_tools:        prog list;
+        lib_c_sources:          filename list;
+        lib_data_files:         (filename * filename option) list;
+        lib_parent:             name option;
+        lib_findlib_name:       findlib_name option;
+        lib_findlib_containers: findlib_name list;
+        lib_schema_data:        PropList.Data.t;
       } 
   
   (** Executable definition 
@@ -794,6 +800,9 @@ module OASISExecutable = struct
   
   open OASISTypes
   
+  let exec_path exec = 
+    Filename.dirname exec.exec_main_is
+  
 end
 
 module OASISLibrary = struct
@@ -805,17 +814,20 @@ module OASISLibrary = struct
   
   open OASISTypes
   open OASISUtils
+  open CommonGettext
   
-  (** Library tree
+  (** Library group are organized in trees
     *)
-  type tree_t = 
-    | Node of name * library * tree_t list
-    | Leaf of name * library
+  type group_t = 
+    | Container of findlib_name * (group_t list)
+    | Package of findlib_name * name * library * (group_t list)
   
   (** Compute groups of libraries, associate root libraries with 
-      a tree of its children.
+      a tree of its children. A group of libraries is defined by 
+      the fact that these libraries has a parental relationship 
+      and must be isntalled together, with the same META file.
     *)
-  let groups libs =
+  let group_libs libs =
     (** Associate a name with its children *)
     let children =
       List.fold_left
@@ -837,22 +849,46 @@ module OASISLibrary = struct
         libs
     in
   
-    (** Build library tree *)
-    let rec tree_of_library nm lib =
-        try 
-          Node (nm, lib,
-                List.rev_map 
-                  (fun (child_nm, child_lib) -> 
-                     tree_of_library child_nm child_lib)
-                  (MapString.find nm children))
-        with Not_found ->
-          Leaf (nm, lib)
+    (* Compute findlib name of a single node *)
+    let findlib_name nm lib =
+      match lib.lib_findlib_name with 
+        | Some nm -> nm
+        | None -> nm
     in
   
+    (** Build a package tree *)
+    let rec tree_of_library containers nm lib =
+      match containers with
+        | hd :: tl ->
+            Container (hd, [tree_of_library tl nm lib])
+        | [] ->
+            (* TODO: allow merging containers with the same 
+             * name 
+             *)
+            Package 
+              (findlib_name nm lib,
+               nm, 
+               lib, 
+               (try 
+                  List.rev_map 
+                    (fun (child_nm, child_lib) -> 
+                       tree_of_library 
+                         child_lib.lib_findlib_containers 
+                         child_nm 
+                         child_lib)
+                    (MapString.find nm children)
+                with Not_found ->
+                  []))
+    in
+  
+      (* TODO: check that libraries are unique *)
       List.fold_left
         (fun acc (nm, lib) ->
            if lib.lib_parent = None then
-             (tree_of_library nm lib) :: acc
+             (tree_of_library 
+                lib.lib_findlib_containers 
+                nm 
+                lib) :: acc
            else
              acc)
         []
@@ -861,50 +897,91 @@ module OASISLibrary = struct
   (** Compute internal library findlib names, including subpackage
       and return a map of it.
     *)
-  let findlib_names libs = 
-    (* Return the findlib name of the library without parents *)
-    let findlib_name_no_recurse nm lib =
-      match lib.lib_findlib_name with 
-        | Some nm -> nm
-        | None -> nm
-    in
+  let findlib_name_map libs = 
   
     (* Compute names in a tree *)
-    let rec findlib_names_aux prt_name mp tree =
-      let nm, cur_name =
-        match tree with
-          | Leaf (nm, lib) 
-          | Node (nm, lib, _) ->
-              begin
-                let loc_name =
-                  findlib_name_no_recurse nm lib
-                in
-                let cur_name =
-                  match prt_name with 
-                    | Some nm -> nm^"."^loc_name
-                    | None -> loc_name
-                in
-                  nm, cur_name
-              end
+    let rec findlib_names_aux path mp grp =
+      let fndlb_nm, children, mp =
+        match grp with
+          | Container (fndlb_nm, children) ->
+              fndlb_nm, children, mp
+                                    
+          | Package (fndlb_nm, nm, _, children) ->
+              fndlb_nm, children, (MapString.add nm (path, fndlb_nm) mp)
       in
-      let mp =
-        MapString.add nm cur_name mp
-      in 
-        match tree with 
-          | Leaf (_, _) ->
-              mp
-          | Node (_, _, children) ->
-              List.fold_left
-                (findlib_names_aux (Some cur_name))
-                mp
-                children
+      let fndlb_nm_full =
+        (match path with
+           | Some pth -> pth^"."
+           | None -> "")^
+        fndlb_nm
+      in
+        List.fold_left
+          (findlib_names_aux (Some fndlb_nm_full))
+          mp
+          children
     in
-  
   
       List.fold_left
         (findlib_names_aux None)
         MapString.empty
-        (groups libs)
+        (group_libs libs)
+  
+  
+  (** Return the findlib name of the library without parents *)
+  let findlib_of_name ?(recurse=false) map nm =
+    try 
+      let (path, fndlb_nm) = 
+        MapString.find nm map
+      in
+        match path with 
+          | Some pth when recurse -> pth^"."^fndlb_nm
+          | _ -> fndlb_nm
+  
+    with Not_found ->
+      failwith 
+        (Printf.sprintf
+           (f_ "Unable to translate internal library '%s' to findlib name")
+           nm)
+  
+  (** Return the findlib root name of a group, it takes into account
+      containers. So the return group name is the toplevel name
+      for both libraries and theirs containers.
+    *)
+  let findlib_of_group = 
+    function
+      | Container (fndlb_nm, _) 
+      | Package (fndlb_nm, _, _, _) -> fndlb_nm
+  
+  (** Return the root library, i.e. the first found into the group tree
+      that has no parent.
+    *)
+  let root_of_group grp =
+    let rec root_lib_aux =
+      function 
+        | Container (_, children) ->
+            root_lib_lst children        
+        | Package (_, nm, lib, children) ->
+            if lib.lib_parent = None then 
+              nm, lib
+            else
+              root_lib_lst children
+    and root_lib_lst =
+      function
+        | [] ->
+            raise Not_found
+        | hd :: tl ->
+            try
+              root_lib_aux hd
+            with Not_found ->
+              root_lib_lst tl
+    in
+      try
+        root_lib_aux grp
+      with Not_found ->
+        failwith
+          (Printf.sprintf 
+             "Unable to determine root library of findlib library '%s'"
+             (findlib_of_group grp))
   
 end
 
@@ -953,7 +1030,7 @@ module OASISTest = struct
 end
 
 
-# 956 "setup.ml"
+# 1033 "setup.ml"
 module BaseEnvLight = struct
 # 0 "/home/gildor/programmation/ocaml-autobuild/src/base/BaseEnvLight.ml"
   
@@ -1033,7 +1110,7 @@ module BaseEnvLight = struct
 end
 
 
-# 1036 "setup.ml"
+# 1113 "setup.ml"
 module BaseEnv = struct
 # 0 "/home/gildor/programmation/ocaml-autobuild/src/base/BaseEnv.ml"
   
@@ -2776,7 +2853,7 @@ module BaseSetup = struct
 end
 
 
-# 2779 "setup.ml"
+# 2856 "setup.ml"
 module InternalConfigure = struct
 # 0 "/home/gildor/programmation/ocaml-autobuild/src/internal/InternalConfigure.ml"
   
@@ -2888,6 +2965,7 @@ module InternalInstall = struct
   open BaseEnv
   open BaseStandardVar
   open OASISTypes
+  open OASISLibrary
   
   let srcdir =
     var_define
@@ -3004,172 +3082,246 @@ module InternalInstall = struct
         BaseLog.register install_file_ev tgt_file
     in
   
-    let install_data path files_targets = 
-      List.iter
-        (fun (src, tgt_opt) ->
-           let real_srcs = 
-             let real_src = 
-               Filename.concat path src
+    (* Install all datas *)
+    let install_datas pkg = 
+  
+      (* Install data for a single section *)
+      let install_data path files_targets = 
+        List.iter
+          (fun (src, tgt_opt) ->
+             let real_srcs = 
+               let real_src = 
+                 Filename.concat path src
+               in
+               (* Glob the src expression *)
+               let filename = 
+                 Filename.basename real_src
+               in
+                 if String.contains filename '*' then
+                   (
+                     let ext = 
+                       match BaseUtils.split '.' filename with 
+                         | [a; b] when a = "*" -> 
+                             "."^b
+                         | _ ->
+                             failwith 
+                               (Printf.sprintf 
+                                  "Invalid file wildcard in '%s'"
+                                  src)
+                     in
+                     let ext_len =
+                       String.length ext
+                     in
+                     let dirname =
+                       Filename.dirname real_src
+                     in
+                     let res =
+                       Array.fold_left
+                         (fun acc fn ->
+                            try 
+                              let fn_ext = 
+                                String.sub 
+                                  fn 
+                                  ((String.length fn) - ext_len) 
+                                  ext_len
+                              in
+                                if fn_ext = ext then
+                                  (Filename.concat dirname fn) :: acc
+                                else
+                                  acc
+                            with Invalid_argument "String.sub" ->
+                              acc)
+                         []
+                         (Sys.readdir dirname)
+                     in
+                       if res = [] then
+                         failwith 
+                           (Printf.sprintf 
+                              "Wildcard '%s' doesn't match any files"
+                              src);
+                       res
+                   )
+                 else
+                   (
+                     [real_src]
+                   )
              in
-             (* Glob the src expression *)
-             let filename = 
-               Filename.basename real_src
-             in
-               if String.contains filename '*' then
-                 (
-                   let ext = 
-                     match BaseUtils.split '.' filename with 
-                       | [a; b] when a = "*" -> 
-                           "."^b
-                       | _ ->
-                           failwith 
-                             (Printf.sprintf 
-                                "Invalid file wildcard in '%s'"
-                                src)
-                   in
-                   let ext_len =
-                     String.length ext
-                   in
-                   let dirname =
-                     Filename.dirname real_src
-                   in
-                   let res =
-                     Array.fold_left
-                       (fun acc fn ->
-                          try 
-                            let fn_ext = 
-                              String.sub 
-                                fn 
-                                ((String.length fn) - ext_len) 
-                                ext_len
-                            in
-                              if fn_ext = ext then
-                                (Filename.concat dirname fn) :: acc
-                              else
-                                acc
-                          with Invalid_argument "String.sub" ->
-                            acc)
-                       []
-                       (Sys.readdir dirname)
-                   in
-                     if res = [] then
-                       failwith 
-                         (Printf.sprintf 
-                            "Wildcard '%s' doesn't match any files"
-                            src);
-                     res
-                 )
-               else
-                 (
-                   [real_src]
-                 )
-           in
-             List.iter 
-               (fun fn -> 
-                  install_file 
-                    fn 
-                    (fun () -> 
-                       match tgt_opt with 
-                         | Some s -> var_expand s
-                         | None -> var_expand "$datarootdir/$pkg_name")) 
-               real_srcs)
-             
-        files_targets
+               List.iter 
+                 (fun fn -> 
+                    install_file 
+                      fn 
+                      (fun () -> 
+                         match tgt_opt with 
+                           | Some s -> var_expand s
+                           | None -> var_expand "$datarootdir/$pkg_name")) 
+                 real_srcs)
+               
+          files_targets
+      in
+  
+        (* Install datas for libraries *)
+        List.iter
+          (fun (nm, lib) -> 
+             if var_choose lib.lib_install then
+               install_data lib.lib_path lib.lib_data_files)
+          pkg.libraries;
+        (* Install datas for executables *)
+        List.iter
+          (fun (nm, exec) ->
+             if var_choose exec.exec_install then
+               install_data (OASISExecutable.exec_path exec) exec.exec_data_files)
+          pkg.executables
     in
   
-    let install_lib (lib_name, lib) = 
-      let lib, lib_extra =
-        !lib_hook lib_name lib
+    (** Install all libraries *)
+    let install_libs pkg =
+  
+      let find_lib_file lib fn =
+        find_file
+          (fun rootdir -> [rootdir; lib.lib_path; fn])
+          rootdirs
       in
-        if var_choose lib.lib_install then
-          (
-            let find_lib_file fn =
-              find_file
-                (fun rootdir -> [rootdir; lib.lib_path; fn])
-                rootdirs
-            in
   
-            let module_to_cmi modul =
-              find_file 
-                 (fun (rootdir, fn) -> [rootdir; lib.lib_path; (fn^".cmi")])
-                 (rootdirs * (make_module modul))
-            in
-  
-            let module_to_header modul =
-              assert(modul <> "");
-              find_file 
-                 (fun ((rootdir, fn), ext) -> [rootdir; lib.lib_path; fn^ext])
-                 (rootdirs * (make_module modul) * [".mli"; ".ml"])
-            in
-              
-            let files =
-              List.flatten
+      let files_of_library acc lib_name lib = 
+        let lib, lib_extra =
+          !lib_hook lib_name lib
+        in
+        let find_lib_file =
+          find_lib_file lib
+        in
+          (if var_choose lib.lib_install then
+             [
+               find_lib_file (lib_name^".cma");
+             ]
+             :: 
+             (if is_native lib.lib_compiled_object then
                 (
-                  [
-                    find_lib_file "META";
-                    find_lib_file (lib_name^".cma");
-                  ]
-                  :: 
-                  (if is_native lib.lib_compiled_object then
-                     (
-                       try 
-                         [
-                           find_lib_file (lib_name^".cmxa");
-                           find_lib_file (lib_name^(ext_lib ()));
-                         ]
-                       with Failure txt ->
-                         BaseMessage.warning 
-                           (Printf.sprintf
-                              "Cannot install native library %s: %s"
-                              lib_name
-                              txt);
-                         []
-                     )
-                   else
-                     []
-                  )
-                  ::
-                  lib_extra
-                  ::
-                  (if lib.lib_c_sources <> [] then
-                     [
-                       find_build_file (libfn lib.lib_path lib_name);
-                     ]
-                   else
-                     [])
-                  ::
-                  (* Some architecture doesn't allow shared library (Cygwin, AIX) *)
-                  (if lib.lib_c_sources <> [] then
-                     (try 
-                       [
-                         find_build_file (dllfn lib.lib_path lib_name);
-                       ]
-                      with Failure txt ->
-                        if (os_type ()) <> "Cygwin" then
-                          BaseMessage.warning
-                            (Printf.sprintf
-                               "Cannot install C static library %s: %s"
-                               lib_name
-                               txt);
-                        [])
-                   else
-                     [])
-                  ::
-                  (
-                    List.rev_map
-                      (fun modul -> [module_to_cmi modul; module_to_header modul])
-                      lib.lib_modules
-                  )
+                  try 
+                    [
+                      find_lib_file (lib_name^".cmxa");
+                      find_lib_file (lib_name^(ext_lib ()));
+                    ]
+                  with Failure txt ->
+                    BaseMessage.warning 
+                      (Printf.sprintf
+                         "Cannot install native library %s: %s"
+                         lib_name
+                         txt);
+                    []
                 )
-            in
+              else
+                []
+             )
+             ::
+             lib_extra
+             ::
+             (if lib.lib_c_sources <> [] then
+                [
+                  find_build_file (libfn lib.lib_path lib_name);
+                ]
+              else
+                [])
+             ::
+             (* Some architecture doesn't allow shared library (Cygwin, AIX) *)
+             (if lib.lib_c_sources <> [] then
+                (try 
+                  [
+                    find_build_file (dllfn lib.lib_path lib_name);
+                  ]
+                 with Failure txt ->
+                   if (os_type ()) <> "Cygwin" then
+                     BaseMessage.warning
+                       (Printf.sprintf
+                          "Cannot install C static library %s: %s"
+                          lib_name
+                          txt);
+                   [])
+              else
+                [])
+             ::
+             (
+               let module_to_cmi modul =
+                 find_file 
+                    (fun (rootdir, fn) -> [rootdir; lib.lib_path; (fn^".cmi")])
+                    (rootdirs * (make_module modul))
+               in
+  
+               let module_to_header modul =
+                 assert(modul <> "");
+                 find_file 
+                    (fun ((rootdir, fn), ext) -> [rootdir; lib.lib_path; fn^ext])
+                    (rootdirs * (make_module modul) * [".mli"; ".ml"])
+               in
+                 List.fold_left
+                   (fun acc modul -> 
+                      module_to_cmi modul :: module_to_header modul :: acc)
+                   []
+                   lib.lib_modules
+             )
+             ::
+             acc
+           else
+             acc)
+      in
+  
+      (* Install one group of library *)
+      let install_group_lib grp = 
+        (* Iterate through all group nodes *)
+        let rec install_group_lib_aux acc grp =
+          let acc, children = 
+            match grp with 
+              | Container (_, children) ->
+                  acc, children
+              | Package (_, nm, lib, children) ->
+                  files_of_library acc nm lib, children
+          in
+            List.fold_left
+              install_group_lib_aux
+              acc
+              children
+        in
+  
+        (* Findlib name of the root library *)
+        let findlib_name =
+          findlib_of_group grp
+        in
+  
+        (* Determine root library *)
+        let _, root_lib =
+          root_of_group grp
+        in
+  
+        (* All files to install for this library *)
+        let files =
+          List.flatten (install_group_lib_aux [] grp)
+        in
+  
+          (* Really install, if there is something to install *)
+          if files = [] then 
+            begin
               BaseMessage.info 
-                (Printf.sprintf
-                   "Installing findlib library '%s'"
-                   lib_name);
-              BaseExec.run "ocamlfind" ("install" :: lib_name :: files);
-              BaseLog.register install_findlib_ev lib_name;
-              install_data lib.lib_path lib.lib_data_files;
-          )
+                (Printf.sprintf 
+                   "Nothing to install for findlib library '%s'"
+                   findlib_name)
+            end
+          else
+            begin
+              let meta = 
+                find_lib_file root_lib "META"
+              in
+                BaseMessage.info 
+                  (Printf.sprintf
+                     "Installing findlib library '%s'"
+                     findlib_name);
+                BaseExec.run (ocamlfind ()) ("install" :: findlib_name :: meta :: files);
+                BaseLog.register install_findlib_ev findlib_name 
+            end
+      in
+  
+        (* We install libraries in groups *)
+        List.iter 
+          install_group_lib
+          (group_libs pkg.libraries)
     in
   
     let install_exec (exec_name, exec) =
@@ -3178,26 +3330,18 @@ module InternalInstall = struct
       in
         if var_choose exec.exec_install then
           (
-            let exec_path = 
-              (* TODO: move this to OASISExecutable *)
-              Filename.dirname exec.exec_main_is
-            in
-            let () = 
               install_file
                 (find_build_file
                    (exec.exec_is^(suffix_program ())))
                 bindir;
-              install_data 
-                exec_path
-                exec.exec_data_files 
-            in
+  
               if exec.exec_c_sources <> [] && 
                  not exec.exec_custom && 
                  not (is_native exec.exec_compiled_object) then
                 (
                   install_file
                     (find_build_file
-                       (dllfn exec_path exec_name))
+                       (dllfn (OASISExecutable.exec_path exec) exec_name))
                     libdir
                 )
               else
@@ -3205,8 +3349,9 @@ module InternalInstall = struct
           )
     in
     
-      List.iter install_lib pkg.libraries;
-      List.iter install_exec pkg.executables
+      install_libs pkg;
+      List.iter install_exec pkg.executables;
+      install_datas pkg
   
   (* Uninstall already installed data *)
   let uninstall _ argv =
@@ -3271,7 +3416,7 @@ module InternalInstall = struct
 end
 
 
-# 3274 "setup.ml"
+# 3419 "setup.ml"
 module OCamlbuildBuild = struct
 # 0 "/home/gildor/programmation/ocaml-autobuild/src/ocamlbuild/OCamlbuildBuild.ml"
   
@@ -3436,7 +3581,7 @@ module OCamlbuildBuild = struct
 end
 
 
-# 3439 "setup.ml"
+# 3584 "setup.ml"
 module CustomPlugin = struct
 # 0 "/home/gildor/programmation/ocaml-autobuild/src/custom/CustomPlugin.ml"
   
@@ -3510,7 +3655,7 @@ module CustomPlugin = struct
 end
 
 
-# 3513 "setup.ml"
+# 3658 "setup.ml"
 open OASISTypes;;
 let setup () =
   BaseSetup.setup
@@ -3567,7 +3712,7 @@ let setup () =
             maintainers = [];
             authors = ["Sylvain Le Gall"];
             homepage = None;
-            synopsis = "store data using OCaml notation";
+            synopsis = "Store data using OCaml notation";
             description = None;
             categories = [];
             build_depends = [];
@@ -3585,7 +3730,7 @@ let setup () =
                       lib_install = [(EBool true, true)];
                       lib_path = "src";
                       lib_modules = ["Pa_noodn"];
-                      lib_compiled_object = Best;
+                      lib_compiled_object = Byte;
                       lib_build_depends =
                         [
                            FindlibPackage
@@ -3600,7 +3745,8 @@ let setup () =
                       lib_c_sources = [];
                       lib_data_files = [];
                       lib_parent = Some "odn";
-                      lib_findlib_name = None;
+                      lib_findlib_name = Some "syntax";
+                      lib_findlib_containers = ["without"];
                       lib_schema_data = PropList.Data.create ();
                       });
                  ("pa_odn",
@@ -3609,7 +3755,7 @@ let setup () =
                       lib_install = [(EBool true, true)];
                       lib_path = "src";
                       lib_modules = ["Pa_odn"];
-                      lib_compiled_object = Best;
+                      lib_compiled_object = Byte;
                       lib_build_depends =
                         [
                            FindlibPackage
@@ -3624,7 +3770,8 @@ let setup () =
                       lib_c_sources = [];
                       lib_data_files = [];
                       lib_parent = Some "odn";
-                      lib_findlib_name = None;
+                      lib_findlib_name = Some "syntax";
+                      lib_findlib_containers = ["with"];
                       lib_schema_data = PropList.Data.create ();
                       });
                  ("odn",
@@ -3640,6 +3787,7 @@ let setup () =
                       lib_data_files = [];
                       lib_parent = None;
                       lib_findlib_name = None;
+                      lib_findlib_containers = [];
                       lib_schema_data = PropList.Data.create ();
                       })
               ];

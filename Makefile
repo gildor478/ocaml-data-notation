@@ -39,8 +39,5 @@ setup.data:
 
 # AUTOBUILD_STOP
 
-install-aux:
-	ocamlfind install odn src/META _build/src/odn.cma _build/src/ODN.cmi _build/src/pa_odn.cma _build/src/pa_noodn.cma
-
 uninstall: 
 	ocamlfind remove odn
