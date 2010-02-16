@@ -1,0 +1,5 @@
+(* OASIS_START *)
+(* DO NOT EDIT (digest: 11241a51a236a4bd67a487fd4274c1a1) *)
+Authors of ocaml-data-notation
+Sylvain Le Gall
+(* OASIS_STOP *)

@@ -1,0 +1,39 @@
+(* OASIS_START *)
+(* DO NOT EDIT (digest: 49b64858fbf540faefd8bbbb0364a7bf) *)
+This is the INSTALL file for the ocaml-data-notation distribution.
+
+This package uses OASIS to generate its build system. See section OASIS for
+full information. 
+
+Dependencies
+============
+
+In order to compile this package, you will need:
+* findlib
+* ocaml (>= 3.11.1)
+* oUnit for executable test
+* fileutils for executable test
+* type-conv (>= 1.6.7) for library pa_noodn, library pa_odn
+
+Installing
+==========
+
+1. Uncompress source directory and got to the root of the package
+2. Run 'ocaml setup.ml -configure'
+3. Run 'ocaml setup.ml -build'
+4. Run 'ocaml setup.ml -install'
+
+Uninstalling
+============
+
+1. Go to the root of the package 
+2. Run 'ocaml setup.ml -uninstall'
+
+OASIS
+=====
+
+OASIS is a software that helps to write setup.ml using a simple '_oasis'
+configuration file. The generated setup only depends on standard OCaml
+installation, no additional library is required.
+
+(* OASIS_STOP *)

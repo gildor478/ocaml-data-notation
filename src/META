@@ -1,4 +1,4 @@
-# AUTOBUILD_START
+# OASIS_START
 # DO NOT EDIT (digest: f10cc05fae92e49fafbb75f830f38744)
 version = "0.0.1"
 description = "Store data using OCaml notation"
@@ -25,4 +25,4 @@ package "with" (
   archive(syntax,toploop) = "pa_odn.cma"
  )
 )
-# AUTOBUILD_STOP
+# OASIS_STOP

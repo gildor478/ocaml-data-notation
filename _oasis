@@ -5,7 +5,7 @@ Version:      0.0.1
 Synopsis:     Store data using OCaml notation
 Authors:      Sylvain Le Gall
 License:      LGPL-LINK-EXN
-Plugins:      DevFiles, META
+Plugins:      StdFiles, DevFiles, META
 
 Library odn
   Path:    src
@@ -14,7 +14,7 @@ Library odn
 Library pa_odn
   Path:              src
   Modules:           Pa_odn
-  Parent:            odn
+  FindlibParent:     odn
   FindlibContainers: with
   FindlibName:       syntax
   BuildDepends:      type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
@@ -26,7 +26,7 @@ Library pa_odn
 Library pa_noodn
   Path:              src
   Modules:           Pa_noodn
-  Parent:            odn
+  FindlibParent:     odn
   FindlibContainers: without
   FindlibName:       syntax
   BuildDepends:      type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
@@ -36,7 +36,8 @@ Library pa_noodn
   XMETADescription:  Syntax extension that removes 'with odn'
   
 Executable test
-  MainIs:       tests/test.ml
+  Path:         tests
+  MainIs:       test.ml
   Install:      false
   BuildDepends: oUnit, fileutils, odn, str
   

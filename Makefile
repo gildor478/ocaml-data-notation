@@ -1,18 +1,10 @@
 
 test: build
 
-# AUTOBUILD_START
-# DO NOT EDIT (digest: be1ced7f09a327f0833049658928e932)
+# OASIS_START
+# DO NOT EDIT (digest: b73a05ebea91f832e18c42666ba6226e)
 
 SETUP = ocaml setup.ml
-
-BUILDFLAGS     =
-DOCFLAGS       =
-TESTFLAGS      =
-CLEANFLAGS     =
-DISTCLEANFLAGS =
-CONFIGUREFLAGS =
-INSTALLFLAGS   =
 
 build: setup.data
 	$(SETUP) -build $(BUILDFLAGS)
@@ -26,18 +18,18 @@ test: setup.data
 install: setup.data
 	$(SETUP) -install $(INSTALLFLAGS)
 
-clean:
+uninstall: setup.data
+	$(SETUP) -uninstall $(UNINSTALLFLAGS)
+
+clean: 
 	$(SETUP) -clean $(CLEANFLAGS)
 
-distclean:
+distclean: 
 	$(SETUP) -distclean $(DISTCLEANFLAGS)
 
-setup.data: 
+setup.data:
 	$(SETUP) -configure $(CONFIGUREFLAGS)
 
-.PHONY: build doc test clean distclean install
+.PHONY: build doc test install uninstall clean distclean configure
 
-# AUTOBUILD_STOP
-
-uninstall: 
-	ocamlfind remove odn
+# OASIS_STOP

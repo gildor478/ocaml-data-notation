@@ -1,7 +1,7 @@
-(* AUTOBUILD_START *)
-(* DO NOT EDIT (digest: d805496b8bd157a66f944620a8a5b644) *)
+(* OASIS_START *)
+(* DO NOT EDIT (digest: 7bc80dac3ec993620253282c2baa903b) *)
 module BaseEnvLight = struct
-# 0 "/home/gildor/programmation/ocaml-autobuild/src/base/BaseEnvLight.ml"
+# 0 "/home/gildor/programmation/oasis/src/base/BaseEnvLight.ml"
   
   (** Simple environment, allowing only to read values
     *)
@@ -81,7 +81,7 @@ end
 
 # 82 "myocamlbuild.ml"
 module OCamlbuildFindlib = struct
-# 0 "/home/gildor/programmation/ocaml-autobuild/src/ocamlbuild/OCamlbuildFindlib.ml"
+# 0 "/home/gildor/programmation/oasis/src/ocamlbuild/OCamlbuildFindlib.ml"
   (** OCamlbuild extension, copied from 
     * http://brion.inria.fr/gallium/index.php/Using_ocamlfind_with_ocamlbuild
     * by N. Pouillard and others
@@ -188,22 +188,24 @@ module OCamlbuildFindlib = struct
 end
 
 module OCamlbuildBase = struct
-# 0 "/home/gildor/programmation/ocaml-autobuild/src/ocamlbuild/OCamlbuildBase.ml"
+# 0 "/home/gildor/programmation/oasis/src/ocamlbuild/OCamlbuildBase.ml"
   
   (** Base functions for writing myocamlbuild.ml
       @author Sylvain Le Gall
     *)
   
+  
+  
   open Ocamlbuild_plugin
   
-  type dir = string
-  type name = string
+  type dir = string 
+  type name = string 
   
   type t =
       {
         lib_ocaml: (name * dir list) list;
         lib_c:     (name * dir) list; 
-      }
+      } 
   
   let dispatch_combine lst =
     fun e ->
@@ -281,17 +283,18 @@ module OCamlbuildBase = struct
         dispatch t;
         OCamlbuildFindlib.dispatch;
       ]
+  
 end
 
 
-# 287 "myocamlbuild.ml"
+# 290 "myocamlbuild.ml"
 let package_default =
   {
      OCamlbuildBase.lib_ocaml =
        [
-          ("src/pa_noodn", ["src"]);
+          ("src/odn", ["src"]);
           ("src/pa_odn", ["src"]);
-          ("src/odn", ["src"])
+          ("src/pa_noodn", ["src"])
        ];
      lib_c = [];
      }
@@ -299,5 +302,5 @@ let package_default =
 
 let dispatch_default = OCamlbuildBase.dispatch_default package_default;;
 
-(* AUTOBUILD_STOP *)
+(* OASIS_STOP *)
 Ocamlbuild_plugin.dispatch dispatch_default;;
