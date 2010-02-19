@@ -29,6 +29,48 @@ let _res: test_result list =
   let pa_noodn_cma =
     Filename.concat odn_path "pa_noodn.cma"
   in
+  let test_files (dir, fns) = 
+    let nm =
+      match fns with 
+        | [fn] ->
+            dir^"/"^fn
+        | lst ->
+            dir^"/("^(String.concat "|" fns)^")" 
+    in
+      nm >::
+      (bracket 
+         (fun () ->
+            let pwd = 
+              Sys.getcwd ()
+            in
+              Sys.chdir dir;
+              pwd)
+         (fun _ ->
+            if !dbug then
+              begin
+                List.iter 
+                  (fun fn ->
+                     print_endline ("File "^fn^": ");
+                     assert_command
+                       ("camlp4o /usr/lib/ocaml/type-conv/pa_type_conv.cmo "^
+                        pa_odn_cma^" Camlp4OCamlPrinter.cmo "^fn))
+                  fns
+              end;
+            
+            assert_command
+              ("ocamlfind ocamlc -g -o test -I "^odn_path^
+               " -package type-conv.syntax -syntax camlp4o -ppopt "^
+               pa_odn_cma^" odn.cma "^(String.concat " " fns)))
+         (fun old_cwd ->
+            rm 
+              (filter 
+                 (Or
+                    (Has_extension "cmi",
+                     Has_extension "cmo"))
+                 (ls "."));
+            rm ["test"];
+            Sys.chdir old_cwd));
+  in
     run_test_tt_main
       ("odn">:::
        [
@@ -45,33 +87,13 @@ let _res: test_result list =
                  ~opened_modules:["MyTest"]  
                  (VRT("MyTest.Test", []))));
 
-         "oasis-examples" >::
-         (bracket 
-            (fun () ->
-               let pwd = 
-                 Sys.getcwd ()
-               in
-                 Sys.chdir "tests/data/oasis-examples";
-                 pwd)
-            (fun _ ->
-               if !dbug then
-                 assert_command
-                   ("camlp4o /usr/lib/ocaml/type-conv/pa_type_conv.cmo "^
-                    pa_odn_cma^" Camlp4OCamlPrinter.cmo OASISTypes.ml");
-               
-               assert_command
-                 ("ocamlfind ocamlc -g -o test -I "^odn_path^
-                  " -package type-conv.syntax -syntax camlp4o -ppopt "^
-                  pa_odn_cma^" odn.cma PropList.ml OASISTypes.ml main.ml"))
-            (fun old_cwd ->
-               rm 
-                 (filter 
-                    (Or
-                       (Has_extension "cmi",
-                        Has_extension "cmo"))
-                    (ls "."));
-               rm ["test"];
-               Sys.chdir old_cwd));
+         test_files
+           ("tests/data/oasis-examples",
+            ["PropList.ml"; "OASISTypes.ml"; "main.ml"]);
+
+         test_files
+           ("tests/data/",
+            ["tuples.ml"]);
      
          "oasis-example no odn" >::
          (bracket

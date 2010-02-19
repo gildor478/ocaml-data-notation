@@ -27,7 +27,29 @@ let odn_patt_name _loc tn =
   Gen.idp _loc (odn_fun_name tn)
 ;;
 
-let rec odn_of_type _loc =
+let rec odn_of_tuple _loc tps =
+    let patts, exprs, _ = 
+      List.fold_left 
+      (fun (acc_patt, acc_expr, i) tp -> 
+         let vnm =
+           "v"^(string_of_int i)
+         in
+           (Gen.idp _loc vnm) :: acc_patt, 
+           <:expr<$odn_of_type _loc tp$ $Gen.ide _loc vnm$>> :: acc_expr, 
+           i + 1)
+      ([], [], 0)
+      (List.rev 
+         (list_of_ctyp tps []))
+    in
+    let patt = 
+      match patts with 
+        | [patt] -> patt
+        | _ -> <:patt<($tup:paCom_of_list patts$)>>
+    in
+      <:expr<fun $patt$ -> 
+        ODN.TPL($Gen.mk_expr_lst _loc exprs$)>>
+
+and odn_of_type _loc =
   function 
     | <:ctyp<$id:id$>> ->
         begin
@@ -50,33 +72,8 @@ let rec odn_of_type _loc =
         <:expr<$odn_of_type _loc tp2$ $odn_of_type _loc tp1$>>
     | <:ctyp<'$parm$>> ->
         <:expr<$id:odn_id_name _loc parm []$>>
-
-    (* Tuples *)
-    | <:ctyp<$tp1$ * $tp2$ * $tp3$ * $tp4$ * $tp5$>> ->
-        <:expr<ODN.of_tuple5 
-                  ($odn_of_type _loc tp1$,
-                   $odn_of_type _loc tp2$,
-                   $odn_of_type _loc tp3$,
-                   $odn_of_type _loc tp4$,
-                   $odn_of_type _loc tp5$)>>
-    | <:ctyp<$tp1$ * $tp2$ * $tp3$ * $tp4$>> ->
-        <:expr<ODN.of_tuple4 
-                  ($odn_of_type _loc tp1$,
-                   $odn_of_type _loc tp2$,
-                   $odn_of_type _loc tp3$,
-                   $odn_of_type _loc tp4$)>>
-    | <:ctyp<$tp1$ * $tp2$ * $tp3$>> ->
-        <:expr<ODN.of_tuple3 
-                  ($odn_of_type _loc tp1$,
-                   $odn_of_type _loc tp2$,
-                   $odn_of_type _loc tp3$)>>
-    | <:ctyp<$tp1$ * $tp2$>> ->
-        <:expr<ODN.of_tuple2 
-                  ($odn_of_type _loc tp1$,
-                   $odn_of_type _loc tp2$)>>
-    | <:ctyp<( $tup:tp$ )>> ->
-        failwith "Tuple is too big"
-
+    | <:ctyp< ( $tup:tp$ ) >> ->
+        odn_of_tuple _loc tp
     | _ ->
         assert false
 ;;
