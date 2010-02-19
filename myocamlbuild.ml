@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 7bc80dac3ec993620253282c2baa903b) *)
+(* DO NOT EDIT (digest: fdbbb33ba2210895302228dfca8bfa56) *)
 module BaseEnvLight = struct
 # 0 "/home/gildor/programmation/oasis/src/base/BaseEnvLight.ml"
   
@@ -31,14 +31,16 @@ module BaseEnvLight = struct
           begin
             try 
               while true do 
-                Scanf.fscanf chn "%s = %S\n" 
-                  (fun nm vl -> rmp := MapString.add nm vl !rmp)
+                let line = 
+                  input_line chn
+                in
+                  Scanf.sscanf line "%s = %S" 
+                    (fun nm vl -> rmp := MapString.add nm vl !rmp)
               done;
               ()
             with End_of_file ->
-              ()
+              close_in chn
           end;
-          close_in chn;
           !rmp
       end
     else if allow_empty then
@@ -79,7 +81,7 @@ module BaseEnvLight = struct
 end
 
 
-# 82 "myocamlbuild.ml"
+# 84 "myocamlbuild.ml"
 module OCamlbuildFindlib = struct
 # 0 "/home/gildor/programmation/oasis/src/ocamlbuild/OCamlbuildFindlib.ml"
   (** OCamlbuild extension, copied from 
@@ -203,7 +205,7 @@ module OCamlbuildBase = struct
   
   type t =
       {
-        lib_ocaml: (name * dir list) list;
+        lib_ocaml: (name * dir list * bool) list;
         lib_c:     (name * dir) list; 
       } 
   
@@ -238,10 +240,10 @@ module OCamlbuildBase = struct
           (* Declare OCaml libraries *)
           List.iter 
             (function
-               | lib, [] ->
-                   ocaml_lib lib;
-               | lib, dir :: tl ->
-                   ocaml_lib ~dir:dir lib;
+               | lib, [], extern ->
+                   ocaml_lib ~extern lib;
+               | lib, dir :: tl, extern ->
+                   ocaml_lib ~extern ~dir:dir lib;
                    List.iter 
                      (fun dir -> 
                         flag 
@@ -287,14 +289,14 @@ module OCamlbuildBase = struct
 end
 
 
-# 290 "myocamlbuild.ml"
+# 292 "myocamlbuild.ml"
 let package_default =
   {
      OCamlbuildBase.lib_ocaml =
        [
-          ("src/odn", ["src"]);
-          ("src/pa_odn", ["src"]);
-          ("src/pa_noodn", ["src"])
+          ("src/odn", ["src"], true);
+          ("src/pa_noodn", ["src"], true);
+          ("src/pa_odn", ["src"], true)
        ];
      lib_c = [];
      }

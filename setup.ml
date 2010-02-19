@@ -1,6 +1,6 @@
 #!/usr/bin/ocamlrun ocaml
 (* OASIS_START *)
-(* DO NOT EDIT (digest: b13fb436e2a81b1994c7ce3a0199514c) *)
+(* DO NOT EDIT (digest: 07530d2f28b812e2e76b20626521e11f) *)
 module CommonGettext = struct
 # 0 "/home/gildor/programmation/oasis/src/common/CommonGettext.ml"
   
@@ -1166,14 +1166,16 @@ module BaseEnvLight = struct
           begin
             try 
               while true do 
-                Scanf.fscanf chn "%s = %S\n" 
-                  (fun nm vl -> rmp := MapString.add nm vl !rmp)
+                let line = 
+                  input_line chn
+                in
+                  Scanf.sscanf line "%s = %S" 
+                    (fun nm vl -> rmp := MapString.add nm vl !rmp)
               done;
               ()
             with End_of_file ->
-              ()
+              close_in chn
           end;
-          close_in chn;
           !rmp
       end
     else if allow_empty then
@@ -1214,7 +1216,7 @@ module BaseEnvLight = struct
 end
 
 
-# 1217 "setup.ml"
+# 1219 "setup.ml"
 module BaseEnv = struct
 # 0 "/home/gildor/programmation/oasis/src/base/BaseEnv.ml"
   
@@ -2533,16 +2535,15 @@ module BaseLog = struct
         in
         let rec read_aux acc =
           try 
-            (
+            let line = 
+              input_line chn
+            in
               read_aux 
-                (Scanf.fscanf chn "%S %S\n" 
+                (Scanf.sscanf line "%S %S" 
                    (fun e d ->  (e, d) :: acc))
-            )
           with End_of_file ->
-            (
-              close_in chn;
-              List.rev acc
-            )
+            close_in chn;
+            List.rev acc
         in
           read_aux []
       )
@@ -2902,7 +2903,7 @@ module BaseSetup = struct
 end
 
 
-# 2905 "setup.ml"
+# 2906 "setup.ml"
 module InternalConfigure = struct
 # 0 "/home/gildor/programmation/oasis/src/internal/InternalConfigure.ml"
   
@@ -3483,9 +3484,9 @@ module InternalInstall = struct
 end
 
 
-# 3486 "setup.ml"
-module OCamlbuildBuild = struct
-# 0 "/home/gildor/programmation/oasis/src/ocamlbuild/OCamlbuildBuild.ml"
+# 3487 "setup.ml"
+module OCamlbuildPlugin = struct
+# 0 "/home/gildor/programmation/oasis/src/ocamlbuild/OCamlbuildPlugin.ml"
   
   (** Build using ocamlbuild  
       @author Sylvain Le Gall
@@ -3529,7 +3530,7 @@ module OCamlbuildBuild = struct
   
     let ocamlbuild_run rtargets = 
       let args = 
-        List.rev_append rtargets (Array.to_list argv)
+        rtargets @ (Array.to_list argv)
       in
         BaseExec.run (ocamlbuild ()) (env_args @ args)
     in
@@ -3619,7 +3620,8 @@ module OCamlbuildBuild = struct
                  | Test _ | SrcRepo _ | Flag _ ->
                      acc)
             []
-            pkg.sections;
+            (* Keep the pkg.sections ordered *)
+            (List.rev pkg.sections);
         ]
     in
   
@@ -3636,7 +3638,7 @@ module OCamlbuildBuild = struct
                  ::
                  acc
              | Rename (src, tgt) ->
-                 ocamlbuild_run (src :: acc);
+                 ocamlbuild_run (List.rev (src :: acc));
                  BaseFileUtil.cp 
                    (in_build_dir src) 
                    (in_build_dir tgt);
@@ -3645,7 +3647,7 @@ module OCamlbuildBuild = struct
         (!cond_targets_hook cond_targets)
     in
       if last_rtargets <> [] then
-        ocamlbuild_run last_rtargets
+        ocamlbuild_run (List.rev last_rtargets)
   
   let clean pkg extra_args  = 
     (* TODO use ocamlbuild *)
@@ -3654,7 +3656,7 @@ module OCamlbuildBuild = struct
 end
 
 
-# 3657 "setup.ml"
+# 3659 "setup.ml"
 module CustomPlugin = struct
 # 0 "/home/gildor/programmation/oasis/src/custom/CustomPlugin.ml"
   
@@ -3728,13 +3730,13 @@ module CustomPlugin = struct
 end
 
 
-# 3731 "setup.ml"
+# 3733 "setup.ml"
 open OASISTypes;;
 let setup () =
   BaseSetup.setup
     {
        BaseSetup.configure = InternalConfigure.configure;
-       build = OCamlbuildBuild.build;
+       build = OCamlbuildPlugin.build;
        test =
          [
             ("main",
@@ -3748,7 +3750,7 @@ let setup () =
        doc = [];
        install = InternalInstall.install;
        uninstall = InternalInstall.uninstall;
-       clean = [OCamlbuildBuild.clean];
+       clean = [OCamlbuildPlugin.clean];
        clean_test =
          [
             ("main",
@@ -3795,6 +3797,52 @@ let setup () =
             files_ab = [];
             sections =
               [
+                 Library
+                   ({cs_name = "odn"; cs_data = PropList.Data.create (); },
+                     {
+                        bs_build = [(EBool true, true)];
+                        bs_install = [(EBool true, true)];
+                        bs_path = "src";
+                        bs_compiled_object = Best;
+                        bs_build_depends = [];
+                        bs_build_tools = [ExternalTool "ocamlbuild"];
+                        bs_c_sources = [];
+                        bs_data_files = [];
+                        },
+                     {
+                        lib_modules = ["ODN"];
+                        lib_findlib_parent = None;
+                        lib_findlib_name = None;
+                        lib_findlib_containers = [];
+                        });
+                 Library
+                   ({cs_name = "pa_noodn"; cs_data = PropList.Data.create (); 
+                    },
+                     {
+                        bs_build = [(EBool true, true)];
+                        bs_install = [(EBool true, true)];
+                        bs_path = "src";
+                        bs_compiled_object = Byte;
+                        bs_build_depends =
+                          [
+                             FindlibPackage
+                               ("type-conv",
+                                 Some
+                                   (VGreaterEqual
+                                      (VInt (1, VInt (6, VInt (7, VEnd))))));
+                             FindlibPackage ("camlp4.lib", None);
+                             FindlibPackage ("camlp4.quotations.o", None)
+                          ];
+                        bs_build_tools = [ExternalTool "ocamlbuild"];
+                        bs_c_sources = [];
+                        bs_data_files = [];
+                        },
+                     {
+                        lib_modules = ["Pa_noodn"];
+                        lib_findlib_parent = Some "odn";
+                        lib_findlib_name = Some "syntax";
+                        lib_findlib_containers = ["without"];
+                        });
                  Test
                    ({cs_name = "main"; cs_data = PropList.Data.create (); },
                      {
@@ -3824,34 +3872,6 @@ let setup () =
                         },
                      {exec_custom = false; exec_main_is = "test.ml"; });
                  Library
-                   ({cs_name = "pa_noodn"; cs_data = PropList.Data.create (); 
-                    },
-                     {
-                        bs_build = [(EBool true, true)];
-                        bs_install = [(EBool true, true)];
-                        bs_path = "src";
-                        bs_compiled_object = Byte;
-                        bs_build_depends =
-                          [
-                             FindlibPackage
-                               ("type-conv",
-                                 Some
-                                   (VGreaterEqual
-                                      (VInt (1, VInt (6, VInt (7, VEnd))))));
-                             FindlibPackage ("camlp4.lib", None);
-                             FindlibPackage ("camlp4.quotations.o", None)
-                          ];
-                        bs_build_tools = [ExternalTool "ocamlbuild"];
-                        bs_c_sources = [];
-                        bs_data_files = [];
-                        },
-                     {
-                        lib_modules = ["Pa_noodn"];
-                        lib_findlib_parent = Some "odn";
-                        lib_findlib_name = Some "syntax";
-                        lib_findlib_containers = ["without"];
-                        });
-                 Library
                    ({cs_name = "pa_odn"; cs_data = PropList.Data.create (); },
                      {
                         bs_build = [(EBool true, true)];
@@ -3877,24 +3897,6 @@ let setup () =
                         lib_findlib_parent = Some "odn";
                         lib_findlib_name = Some "syntax";
                         lib_findlib_containers = ["with"];
-                        });
-                 Library
-                   ({cs_name = "odn"; cs_data = PropList.Data.create (); },
-                     {
-                        bs_build = [(EBool true, true)];
-                        bs_install = [(EBool true, true)];
-                        bs_path = "src";
-                        bs_compiled_object = Best;
-                        bs_build_depends = [];
-                        bs_build_tools = [ExternalTool "ocamlbuild"];
-                        bs_c_sources = [];
-                        bs_data_files = [];
-                        },
-                     {
-                        lib_modules = ["ODN"];
-                        lib_findlib_parent = None;
-                        lib_findlib_name = None;
-                        lib_findlib_containers = [];
                         })
               ];
             plugins = ["StdFiles"; "DevFiles"; "META"];
