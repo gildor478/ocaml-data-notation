@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 124f3e14c1b4775c339188aba28a1b92) *)
+(* DO NOT EDIT (digest: 78ba5c9cbbd8048b6dafaa35b7649006) *)
 This is the INSTALL file for the ocaml-data-notation distribution.
 
 This package uses OASIS to generate its build system. See section OASIS for
@@ -9,11 +9,11 @@ Dependencies
 ============
 
 In order to compile this package, you will need:
-* ocaml (>= 3.11.1)
+* ocaml (>= 3.11.1) for all, doc odn
 * findlib
 * type-conv (>= 1.6.7) for library pa_noodn, library pa_odn
 * oUnit for executable test
-* fileutils for executable test
+* fileutils (>= 0.4.0) for executable test
 
 Installing
 ==========

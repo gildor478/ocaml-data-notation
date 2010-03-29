@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: fdbbb33ba2210895302228dfca8bfa56) *)
+(* DO NOT EDIT (digest: e04325ea19c41de903c05fce933916e6) *)
 module BaseEnvLight = struct
 # 0 "/home/gildor/programmation/oasis/src/base/BaseEnvLight.ml"
   
@@ -83,7 +83,7 @@ end
 
 # 84 "myocamlbuild.ml"
 module OCamlbuildFindlib = struct
-# 0 "/home/gildor/programmation/oasis/src/ocamlbuild/OCamlbuildFindlib.ml"
+# 0 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/OCamlbuildFindlib.ml"
   (** OCamlbuild extension, copied from 
     * http://brion.inria.fr/gallium/index.php/Using_ocamlfind_with_ocamlbuild
     * by N. Pouillard and others
@@ -190,7 +190,7 @@ module OCamlbuildFindlib = struct
 end
 
 module OCamlbuildBase = struct
-# 0 "/home/gildor/programmation/oasis/src/ocamlbuild/OCamlbuildBase.ml"
+# 0 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/OCamlbuildBase.ml"
   
   (** Base functions for writing myocamlbuild.ml
       @author Sylvain Le Gall
@@ -203,10 +203,13 @@ module OCamlbuildBase = struct
   type dir = string 
   type name = string 
   
+# 32 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/OCamlbuildBase.ml"
+  
   type t =
       {
         lib_ocaml: (name * dir list * bool) list;
         lib_c:     (name * dir) list; 
+        flags:     (string list * spec) list;
       } 
   
   let dispatch_combine lst =
@@ -275,7 +278,13 @@ module OCamlbuildBase = struct
                  flag ["link"; "ocaml"; "use_"^lib] 
                    (S[A"-I"; P(dir)]);
             )
-            t.lib_c
+            t.lib_c;
+  
+            (* Add flags *)
+            List.iter
+            (fun (tags, spec) ->
+               flag tags & spec)
+            t.flags
       | _ -> 
           ()
   
@@ -289,7 +298,8 @@ module OCamlbuildBase = struct
 end
 
 
-# 292 "myocamlbuild.ml"
+# 301 "myocamlbuild.ml"
+open Ocamlbuild_plugin;;
 let package_default =
   {
      OCamlbuildBase.lib_ocaml =
@@ -299,6 +309,7 @@ let package_default =
           ("src/pa_odn", ["src"], true)
        ];
      lib_c = [];
+     flags = [];
      }
   ;;
 

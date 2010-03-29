@@ -21,13 +21,16 @@ let _res: test_result list =
       (Sys.command str)
   in
   let odn_path =
-    Filename.concat (Sys.getcwd ()) "_build/src"
+    Filename.concat (Sys.getcwd ()) (Filename.concat "_build" "src")
   in
   let pa_odn_cma =
     Filename.concat odn_path "pa_odn.cma"
   in
   let pa_noodn_cma =
     Filename.concat odn_path "pa_noodn.cma"
+  in
+  let pa_type_conv_cmo = 
+    Filename.concat TestConf.pkg_type_conv_dir "pa_type_conv.cmo"
   in
   let test_files (dir, fns) = 
     let nm =
@@ -52,7 +55,7 @@ let _res: test_result list =
                   (fun fn ->
                      print_endline ("File "^fn^": ");
                      assert_command
-                       ("camlp4o /usr/lib/ocaml/type-conv/pa_type_conv.cmo "^
+                       ("camlp4o "^pa_type_conv_cmo^" "^
                         pa_odn_cma^" Camlp4OCamlPrinter.cmo "^fn))
                   fns
               end;
@@ -103,7 +106,7 @@ let _res: test_result list =
                let () = 
                  (* Create a file without odn in it *)
                  assert_command 
-                   ("camlp4o /usr/lib/ocaml/type-conv/pa_type_conv.cmo "^
+                   ("camlp4o "^pa_type_conv_cmo^" "^
                     pa_noodn_cma^" Camlp4OCamlPrinter.cmo "^
                     "tests/data/oasis-examples/OASISTypes.ml > "^fn)
                in

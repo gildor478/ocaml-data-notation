@@ -5,42 +5,45 @@ Version:      0.0.1
 Synopsis:     Store data using OCaml notation
 Authors:      Sylvain Le Gall
 License:      LGPL-LINK-EXN
-Plugins:      StdFiles, DevFiles, META
+Plugins:      StdFiles (0.1.0), DevFiles (0.1.0), META (0.1.0)
+FilesAB:      tests/TestConf.ml.ab
 
 Library odn
   Path:    src
   Modules: ODN
   
 Library pa_odn
-  Path:              src
-  Modules:           Pa_odn
-  FindlibParent:     odn
-  FindlibContainers: with
-  FindlibName:       syntax
-  BuildDepends:      type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
-  CompiledObject:    byte
-  XMETAType:         syntax
-  XMETARequires:     type-conv.syntax, camlp4, odn
-  XMETADescription:  Syntax extension for odn
+  Path:               src
+  Modules:            Pa_odn
+  FindlibParent:      odn
+  FindlibContainers:  with
+  FindlibName:        syntax
+  BuildDepends:       type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
+  CompiledObject:     byte
+  XMETAType:          syntax
+  XMETARequires:      type-conv.syntax, camlp4, odn
+  XMETADescription:   Syntax extension for odn
+  XOCamlbuildAutoDoc: false
 
 Library pa_noodn
-  Path:              src
-  Modules:           Pa_noodn
-  FindlibParent:     odn
-  FindlibContainers: without
-  FindlibName:       syntax
-  BuildDepends:      type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
-  CompiledObject:    byte
-  XMETAType:         syntax
-  XMETARequires:     type-conv.syntax, camlp4
-  XMETADescription:  Syntax extension that removes 'with odn'
+  Path:               src
+  Modules:            Pa_noodn
+  FindlibParent:      odn
+  FindlibContainers:  without
+  FindlibName:        syntax
+  BuildDepends:       type-conv (>= 1.6.7), camlp4.lib, camlp4.quotations.o 
+  CompiledObject:     byte
+  XMETAType:          syntax
+  XMETARequires:      type-conv.syntax, camlp4
+  XMETADescription:   Syntax extension that removes 'with odn'
+  XOCamlbuildAutoDoc: false
   
 Executable test
   Path:         tests
   MainIs:       test.ml
   Install:      false
-  BuildDepends: oUnit, fileutils, odn, str
+  BuildDepends: oUnit, fileutils (>= 0.4.0), odn, str
   
 Test main
   Type:    custom
-  Command: _build/tests/test
+  Command: $(utoh "_build/tests/test")

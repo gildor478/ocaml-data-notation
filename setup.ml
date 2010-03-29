@@ -1,8 +1,7 @@
-#!/usr/bin/ocamlrun ocaml
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 07530d2f28b812e2e76b20626521e11f) *)
-module CommonGettext = struct
-# 0 "/home/gildor/programmation/oasis/src/common/CommonGettext.ml"
+(* DO NOT EDIT (digest: e738b04ca43e3fc68f80afd6018b0089) *)
+module OASISGettext = struct
+# 0 "/home/gildor/programmation/oasis/src/common/OASISGettext.ml"
   
   (** Gettext interface
     *)
@@ -12,6 +11,76 @@ module CommonGettext = struct
   
   let f_ (str : ('a, 'b, 'c) format) =
     str
+  
+  
+end
+
+module OASISMessage = struct
+# 0 "/home/gildor/programmation/oasis/src/common/OASISMessage.ml"
+  
+  (** Message to user
+      @author Sylvain Le Gall
+    *)
+  
+  open OASISGettext
+  
+  let verbose =
+    ref true
+  
+  let debug =
+    ref false
+  
+  (** Command line arguments
+    *)
+  let args =
+    ["-quiet",
+     Arg.Clear verbose,
+     (s_ " Run quietly");
+  
+     "-debug",
+     Arg.Set debug,
+     (s_ " Output debug message")]
+  
+  (**/**)
+  let generic_message ?(after=ignore) cond beg fmt =
+    if cond then
+      begin
+        Printf.fprintf stderr "%s: " beg;
+        Printf.kfprintf 
+          (fun chn -> 
+             Printf.fprintf chn "\n%!";
+             after ())
+          stderr
+          fmt
+      end
+    else
+      begin
+        Printf.ifprintf 
+          stderr
+          fmt
+      end
+  (**/**)
+  
+  
+  (** Print a debug message
+    *)
+  let debug fmt =
+    generic_message !debug "D" fmt
+  
+  (** Print information message.
+    *)
+  let info fmt = 
+    generic_message !verbose "I" fmt
+  
+  (** Print a warning message 
+    *)
+  let warning fmt =
+    generic_message !verbose "W" fmt
+  
+  (** Print an error message and exit.
+    *)
+  let error fmt =
+    generic_message ~after:(fun () -> exit 1) !verbose "E" fmt
 end
 
 module PropList = struct
@@ -21,21 +90,23 @@ module PropList = struct
       @author Sylvain Le Gall
     *)
   
-  open CommonGettext
+  open OASISGettext
   
   type name_t = string
   
   let no_context f =
     fun ?context s -> f s
   
-  exception Not_set of name_t
+  exception Not_set of name_t * string option 
   exception No_printer of name_t
   exception Unknown_field of name_t * name_t
   
   let string_of_exception =
     function
-      | Not_set nm ->
-          Printf.sprintf (f_ "Value %s is not set") nm
+      | Not_set (nm, Some rsn) ->
+          Printf.sprintf (f_ "Field '%s' is not set: %s") nm rsn
+      | Not_set (nm, None) ->
+          Printf.sprintf (f_ "Field '%s' is not set") nm
       | No_printer nm ->
           Printf.sprintf (f_ "No default printer for value %s") nm
       | Unknown_field (nm, schm) ->
@@ -52,7 +123,7 @@ module PropList = struct
     let create () =
       Hashtbl.create 13
   
-# 40 "/home/gildor/programmation/oasis/src/common/PropList.ml"
+# 42 "/home/gildor/programmation/oasis/src/common/PropList.ml"
   end
   
   module Schema = 
@@ -61,7 +132,7 @@ module PropList = struct
     type ('ctxt, 'extra) value_t =
         {
           get:   Data.t -> string;
-          set:   Data.t -> ?context:'ctxt  -> string -> unit;
+          set:   Data.t -> ?context:'ctxt -> string -> unit;
           help:  (unit -> string) option;
           extra: 'extra;
         }
@@ -118,7 +189,7 @@ module PropList = struct
       in
   
         if Hashtbl.mem t.fields key then
-          failwith 
+          failwith
             (Printf.sprintf 
                (f_ "Field '%s' is already defined in schema '%s'")
                nm t.name);
@@ -178,7 +249,7 @@ module PropList = struct
   
     type ('ctxt, 'value, 'extra) t =
         {
-          set:    Data.t -> 'value -> unit;
+          set:    Data.t -> ?context:'ctxt -> 'value -> unit;
           get:    Data.t -> 'value;
           sets:   Data.t -> ?context:'ctxt -> string -> unit;
           gets:   Data.t -> string;
@@ -209,7 +280,7 @@ module PropList = struct
       let default () = 
         match default with 
           | Some d -> d
-          | None -> raise (Not_set nm) 
+          | None -> raise (Not_set (nm, Some (s_ "no default value")))
       in
   
       (* Get data *)
@@ -225,13 +296,13 @@ module PropList = struct
       in
   
       (* Set data *)
-      let set data x = 
+      let set data ?context x = 
         let x = 
           match update with 
             | Some f ->
                 begin
                   try 
-                    f (get data) x
+                    f ?context (get data) x
                   with Not_set _ ->
                     x
                 end
@@ -260,7 +331,7 @@ module PropList = struct
   
       (* Set data, from string *)
       let sets data ?context s =
-        set data (parse ?context s)
+        set ?context data (parse ?context s)
       in
   
       (* Output value as string, if possible *)
@@ -294,8 +365,8 @@ module PropList = struct
           extra = extra;
         }
   
-    let fset data t x = 
-      t.set data x
+    let fset data t ?context x = 
+      t.set data ?context x
   
     let fget data t =
       t.get data
@@ -321,7 +392,7 @@ module PropList = struct
 end
 
 
-# 324 "setup.ml"
+# 395 "setup.ml"
 module OASISTypes = struct
 # 0 "/home/gildor/programmation/oasis/src/oasis/OASISTypes.ml"
   
@@ -339,6 +410,10 @@ module OASISTypes = struct
   type dirname      = string 
   type filename     = string 
   type prog         = string 
+  type arg          = string 
+  type args         = arg list 
+  type command      = string 
+  type command_line = (command * args) 
   
   (* Package name for findlib, doesn't contain '.' *)
   type findlib_name = string 
@@ -439,6 +514,8 @@ module OASISTypes = struct
     *)
   type 'a conditional = (expr * 'a) list 
   
+  type plugin = name * version option 
+  
   type common_section =
       {
         cs_name: name;
@@ -456,6 +533,12 @@ module OASISTypes = struct
         bs_build_tools:     tool list;
         bs_c_sources:       filename list;
         bs_data_files:      (filename * filename option) list;
+        bs_ccopt:           args conditional;
+        bs_cclib:           args conditional;
+        bs_dlllib:          args conditional;
+        bs_dllpath:         args conditional;
+        bs_byteopt:         args conditional;
+        bs_nativeopt:       args conditional;
       }
       
   
@@ -502,11 +585,23 @@ module OASISTypes = struct
     *)
   type test = 
       {
-        test_type:               string;
-        test_command:            string * string list;
+        test_type:               plugin;
+        test_command:            command_line conditional;
         test_working_directory:  filename option;
         test_run:                bool conditional;
         test_build_tools:        tool list;
+      } 
+  
+  (** Documentation definition
+    *)
+  type doc =
+      {
+        doc_type:        plugin;
+        doc_build:       bool conditional;
+        doc_install:     bool conditional;
+        doc_install_dir: filename;
+        doc_data_files:  (filename * filename option) list;
+        doc_build_tools: tool list;
       } 
   
   type section =
@@ -515,6 +610,7 @@ module OASISTypes = struct
     | Flag       of common_section * flag
     | SrcRepo    of common_section * source_repository
     | Test       of common_section * test
+    | Doc        of common_section * doc
     
   
   (** OASIS file whole content
@@ -535,14 +631,233 @@ module OASISTypes = struct
         synopsis:        string;
         description:     string option;
         categories:      url list;
-        conf_type:       string;
-        build_type:      string;
-        install_type:    string;
+        conf_type:       plugin;
+        build_type:      plugin;
+        install_type:    plugin;
         files_ab:        filename list;
         sections:        section list;
-        plugins:         string list;
+        plugins:         plugin list;
         schema_data:     PropList.Data.t;
       } 
+  
+end
+
+module OASISUtils = struct
+# 0 "/home/gildor/programmation/oasis/src/oasis/OASISUtils.ml"
+  
+  (** Various utilities for OASIS.
+    *)
+  
+  module MapString = Map.Make(String)
+  
+  (** Build a MapString with an association list 
+    *)
+  let map_string_of_assoc assoc =
+    List.fold_left
+      (fun acc (k, v) -> MapString.add k v acc)
+      MapString.empty
+      assoc
+  
+  (** Set for String 
+    *)
+  module SetString = Set.Make(String)
+  
+  (** Add a list to a SetString
+    *)
+  let set_string_add_list st lst =
+    List.fold_left 
+      (fun acc e -> SetString.add e acc)
+      st
+      lst
+  
+  (** Build a set out of list 
+    *)
+  let set_string_of_list =
+    set_string_add_list
+      SetString.empty
+  
+  (** Split a string, separator not included
+    *)
+  let split sep str =
+    let str_len =
+      String.length str
+    in
+    let rec split_aux acc pos =
+      if pos < str_len then
+        (
+          let pos_sep = 
+            try
+              String.index_from str pos sep
+            with Not_found ->
+              str_len
+          in
+          let part = 
+            String.sub str pos (pos_sep - pos) 
+          in
+          let acc = 
+            part :: acc
+          in
+            if pos_sep >= str_len then
+              (
+                (* Nothing more in the string *)
+                List.rev acc
+              )
+            else if pos_sep = (str_len - 1) then
+              (
+                (* String end with a separator *)
+                List.rev ("" :: acc)
+              )
+            else
+              (
+                split_aux acc (pos_sep + 1)
+              )
+        )
+      else
+        (
+          List.rev acc
+        )
+    in
+      split_aux [] 0
+  
+  
+  (** [varname_of_string ~hyphen:c s] Transform a string [s] into a variable name, 
+      following this convention: no digit at the beginning, lowercase, only a-z
+      and 0-9 chars. Whenever there is a problem, use an hyphen char.
+    *)
+  let varname_of_string ?(hyphen='_') s = 
+    if String.length s = 0 then
+      begin
+        invalid_arg "varname_of_string" 
+      end
+    else
+      begin
+        let buff = 
+          Buffer.create (String.length s)
+        in
+          (* Start with a _ if digit *)
+          if '0' <= s.[0] && s.[0] <= '9' then
+            Buffer.add_char buff hyphen;
+  
+          String.iter
+            (fun c ->
+               if ('a' <= c && c <= 'z') 
+                 || 
+                  ('A' <= c && c <= 'Z') 
+                 || 
+                  ('0' <= c && c <= '9') then
+                 Buffer.add_char buff c
+               else
+                 Buffer.add_char buff hyphen)
+            s;
+  
+          String.lowercase (Buffer.contents buff)
+      end
+  
+  (** [varname_concat ~hyphen p s] Concat variable name, removing hyphen at end
+      of [p] and at beginning of [s].
+    *)
+  let varname_concat ?(hyphen='_') p s = 
+    let p = 
+      let p_len =
+        String.length p
+      in
+        if p_len > 0 && p.[p_len - 1] = hyphen then
+          String.sub p 0 (p_len - 1)
+        else
+          p
+    in
+    let s = 
+      let s_len =
+        String.length s
+      in
+        if s_len > 0 && s.[0] = hyphen then
+          String.sub s 1 (s_len - 1)
+        else
+          s
+    in
+      Printf.sprintf "%s%c%s" p hyphen s
+  
+  
+  (** Fail with a format string, with 1 to 5 args.
+      This is ugly but trying to use 
+      Printf.ksprintf failwith, fails because the 
+      return function should also be polymorphic
+      but is constrained by the format types ->
+      return is typed string and not 'a...
+    *)
+  let failwithf1 fmt a =
+    failwith (Printf.sprintf fmt a)
+  
+  let failwithf2 fmt a b =
+    failwith (Printf.sprintf fmt a b)
+  
+  let failwithf3 fmt a b c =
+    failwith (Printf.sprintf fmt a b c)
+  
+  let failwithf4 fmt a b c d =
+    failwith (Printf.sprintf fmt a b c d)
+  
+  let failwithf5 fmt a b c d e =
+    failwith (Printf.sprintf fmt a b c d e)
+  
+end
+
+module OASISUnixPath = struct
+# 0 "/home/gildor/programmation/oasis/src/oasis/OASISUnixPath.ml"
+  
+  (** Manipulate Unix style path
+      @author Sylvain Le Gall
+    *)
+  
+  let current_dir_name = "."
+  
+  let parent_dir_name = ".."
+  
+  let concat f1 f2 = 
+    if f1 = current_dir_name then
+      f2
+    else if f2 = current_dir_name then
+      f1
+    else
+      f1^"/"^f2
+  
+  let make =
+    function
+      | hd :: tl ->
+          List.fold_left
+            (fun f p -> concat f p)
+            hd
+            tl
+      | [] ->
+          invalid_arg "OASISUnixPath.make"
+  
+  let dirname f =
+    try
+      String.sub f 0 (String.rindex f '/')
+    with Not_found ->
+      current_dir_name
+  
+  let chop_extension f =
+    try 
+      let last_dot =
+        String.rindex f '.'
+      in
+      let sub =
+        String.sub f 0 last_dot
+      in
+        try 
+          let last_slash =
+            String.rindex f '/'
+          in
+            if last_slash < last_dot then
+              sub
+            else
+              f
+        with Not_found ->
+          sub
+  
+    with Not_found ->
+      f
   
 end
 
@@ -554,7 +869,7 @@ module OASISVersion = struct
     *)
   
   open OASISTypes
-  open CommonGettext
+  open OASISGettext
   
   (** Compare versions
     *)
@@ -686,119 +1001,25 @@ module OASISVersion = struct
       | VAnd (c1, c2) -> 
           (string_of_comparator c1)^" && "^(string_of_comparator c2)
   
-  (** Convert a version to a varname 
-    *)
-  let varname_of_version v =
-    let vstr = 
-      string_of_version v
-    in
-    let buff = 
-      Buffer.create (String.length vstr)
-    in
-      String.iter 
-        (fun c ->
-           if ('a' <= c && c <= 'z') ||
-              ('A' <= c && c <= 'Z') ||
-              ('0' <= c && c <= '9') ||
-              (c = '_') then
-             Buffer.add_char buff c
-           else
-             Buffer.add_char buff '_')
-        vstr;
-      Buffer.contents buff 
-  
   (** Convert a comparator to a varname 
     *)
   let rec varname_of_comparator =
-    function 
-      | VGreater v -> "gt_"^(varname_of_version v)
-      | VLesser v  -> "lt_"^(varname_of_version v)
-      | VEqual v   -> "eq_"^(varname_of_version v)
-      | VGreaterEqual v -> "ge_"^(varname_of_version v)
-      | VLesserEqual v  -> "le_"^(varname_of_version v)
-      | VOr (c1, c2) ->
-          (varname_of_comparator c1)^"_or_"^(varname_of_comparator c2)
-      | VAnd (c1, c2) ->
-          (varname_of_comparator c1)^"_and_"^(varname_of_comparator c2)
-  
-end
-
-module OASISUtils = struct
-# 0 "/home/gildor/programmation/oasis/src/oasis/OASISUtils.ml"
-  
-  (** Various utilities for OASIS.
-    *)
-  
-  module MapString = Map.Make(String)
-  
-  (** Build a MapString with an association list 
-    *)
-  let map_string_of_assoc assoc =
-    List.fold_left
-      (fun acc (k, v) -> MapString.add k v acc)
-      MapString.empty
-      assoc
-  
-  (** Set for String 
-    *)
-  module SetString = Set.Make(String)
-  
-  (** Add a list to a SetString
-    *)
-  let set_string_add_list st lst =
-    List.fold_left 
-      (fun acc e -> SetString.add e acc)
-      st
-      lst
-  
-  (** Build a set out of list 
-    *)
-  let set_string_of_list =
-    set_string_add_list
-      SetString.empty
-  
-  (** Split a string, separator not included
-    *)
-  let split sep str =
-    let str_len =
-      String.length str
+    let concat p v = 
+      OASISUtils.varname_concat
+        p 
+        (OASISUtils.varname_of_string 
+           (string_of_version v))
     in
-    let rec split_aux acc pos =
-      if pos < str_len then
-        (
-          let pos_sep = 
-            try
-              String.index_from str pos sep
-            with Not_found ->
-              str_len
-          in
-          let part = 
-            String.sub str pos (pos_sep - pos) 
-          in
-          let acc = 
-            part :: acc
-          in
-            if pos_sep >= str_len then
-              (
-                (* Nothing more in the string *)
-                List.rev acc
-              )
-            else if pos_sep = (str_len - 1) then
-              (
-                (* String end with a separator *)
-                List.rev ("" :: acc)
-              )
-            else
-              (
-                split_aux acc (pos_sep + 1)
-              )
-        )
-      else
-        (
-          List.rev acc
-        )
-    in
-      split_aux [] 0
+      function 
+        | VGreater v -> concat "gt" v
+        | VLesser v  -> concat "lt" v
+        | VEqual v   -> concat "eq" v
+        | VGreaterEqual v -> concat "ge" v
+        | VLesserEqual v  -> concat "le" v
+        | VOr (c1, c2) ->
+            (varname_of_comparator c1)^"_or_"^(varname_of_comparator c2)
+        | VAnd (c1, c2) ->
+            (varname_of_comparator c1)^"_and_"^(varname_of_comparator c2)
   
 end
 
@@ -809,6 +1030,8 @@ module OASISExpr = struct
     *)
   
   open OASISTypes
+  open OASISGettext
+  open OASISUtils
   
   (** Evaluate each conditions and choose the right one. *)
   let choose var_get test_get lst =
@@ -848,10 +1071,43 @@ module OASISExpr = struct
             else
               choose_aux tl
         | [] ->
-            failwith 
-              "No result for a choice list"
+            failwith
+              (s_ "No result for a choice list")
     in
       choose_aux (List.rev lst)
+  
+  (** All availbable expression tests and functions to convert it
+      to string and reverse
+    *)
+  let expr_tests, string_of_expr_test, expr_test_of_string =
+    let all =
+      [
+        TOs_type;
+        TSystem;
+        TArchitecture;
+        TCcomp_type;
+        TOCaml_version;
+      ]
+    in
+    let to_string = 
+      function 
+        | TOs_type       -> "os_type"
+        | TSystem        -> "system"
+        | TArchitecture  -> "architecture"
+        | TCcomp_type    -> "ccomp_type"
+        | TOCaml_version -> "ocaml_version"
+    in
+    let of_string =
+      let mp =
+        List.rev_map (fun e -> to_string e, e) all
+      in
+        fun s -> 
+          try 
+            List.assoc (String.lowercase s) mp 
+          with Not_found ->
+            failwithf1 (f_ "Unknown OASIS test %s") s
+    in
+      all, to_string, of_string
   
 end
 
@@ -863,6 +1119,57 @@ module OASISSection = struct
     *)
   
   open OASISTypes
+  
+  type section_kind =
+    | KLibrary 
+    | KExecutable
+    | KFlag
+    | KSrcRepo
+    | KTest
+    | KDoc
+  
+  (** Extract generic information 
+    *)
+  let section_kind_common = 
+    function
+      | Library (cs, _, _) -> 
+          KLibrary, cs
+      | Executable (cs, _, _) ->
+          KExecutable, cs
+      | Flag (cs, _) ->
+          KFlag, cs
+      | SrcRepo (cs, _) ->
+          KSrcRepo, cs
+      | Test (cs, _) ->
+          KTest, cs
+      | Doc (cs, _) ->
+          KDoc, cs
+  
+  (** Common section of a section
+    *)
+  let section_common sct =
+    snd (section_kind_common sct)
+  
+  (** Key used to identify section
+    *)
+  let section_id sct = 
+    let k, cs = 
+      section_kind_common sct
+    in
+      k, cs.cs_name
+  
+  let string_of_section sct =
+    let k, nm =
+      section_id sct
+    in
+      (match k with
+         | KLibrary    -> "library" 
+         | KExecutable -> "executable"
+         | KFlag       -> "flag"
+         | KSrcRepo    -> "src repository"
+         | KTest       -> "test"
+         | KDoc        -> "doc")
+      ^" "^nm
   
 end
 
@@ -886,21 +1193,33 @@ module OASISExecutable = struct
   
   open OASISTypes
   
-  (* Return the directory that will contain the executable *)
-  let exec_main_path (cs, bs, exec) = 
-    let dir = 
-      Filename.dirname exec.exec_main_is
-    in
-      if dir = Filename.current_dir_name then
-        bs.bs_path
-      else
-        Filename.concat bs.bs_path dir
-  
   (* Return the name of the real name of executable, with full 
-     path
+     unix path
    *)
-  let exec_is ((cs, _, _) as exec_data) = 
-    Filename.concat (exec_main_path exec_data) cs.cs_name
+  let unix_exec_is (cs, bs, exec) is_native ext_dll suffix_program = 
+    let dir = 
+      OASISUnixPath.concat
+        bs.bs_path
+        (OASISUnixPath.dirname exec.exec_main_is)
+    in
+    let is_native_exec = 
+      match bs.bs_compiled_object with
+        | Native -> true
+        | Best -> is_native ()
+        | Byte -> false
+    in
+  
+      OASISUnixPath.concat
+        dir
+        (cs.cs_name^(suffix_program ())),
+  
+      if not is_native_exec && 
+         not exec.exec_custom && 
+         bs.bs_c_sources <> [] then
+        Some (dir^"/dll"^cs.cs_name^(ext_dll ()))
+      else
+        None
+  
   
 end
 
@@ -913,7 +1232,79 @@ module OASISLibrary = struct
   
   open OASISTypes
   open OASISUtils
-  open CommonGettext
+  open OASISGettext
+  
+  (** Compute all files expected by a build of the library
+    *)
+  let generated_unix_files (cs, bs, lib) 
+        source_file_exists is_native ext_lib ext_dll =  
+    (* The headers that should be compiled along *)
+    let headers = 
+      List.fold_left
+        (fun hdrs modul ->
+           try 
+             let base_fn = 
+               List.find
+                 (fun fn -> 
+                    source_file_exists (fn^".ml") ||
+                    source_file_exists (fn^".mli"))
+                 (List.map
+                    (OASISUnixPath.concat bs.bs_path)
+                    [String.uncapitalize modul;
+                     String.capitalize modul])
+             in
+               (base_fn^".cmi") :: hdrs
+           with Not_found ->
+             failwithf2
+               (f_ "Cannot find source file matching \
+                    module '%s' in library %s")
+               modul cs.cs_name)
+        []
+        lib.lib_modules
+    in
+  
+    let acc_nopath =
+      []
+    in
+  
+    (* Compute what libraries should be built *)
+    let acc_nopath =
+      let byte acc =
+        (cs.cs_name^".cma") :: acc
+      in
+      let native acc =
+        (cs.cs_name^".cmxa") :: (cs.cs_name^(ext_lib ())) :: acc
+      in
+        match bs.bs_compiled_object with 
+          | Native ->
+              byte (native acc_nopath)
+          | Best when is_native () ->
+              byte (native acc_nopath)
+          | Byte | Best ->
+              byte acc_nopath
+    in
+  
+    (* Add C library to be built *)
+    let acc_nopath = 
+      if bs.bs_c_sources <> [] then
+        begin
+          ("lib"^cs.cs_name^(ext_lib ()))
+          ::
+          ("dll"^cs.cs_name^(ext_dll ()))
+          ::
+          acc_nopath
+        end
+      else
+        acc_nopath
+    in
+  
+      (* All the files generated *)
+      List.rev_append
+        (List.rev_map
+           (OASISUnixPath.concat bs.bs_path)
+           acc_nopath)
+        headers
+  
   
   (** Library group are organized in trees
     *)
@@ -1042,10 +1433,9 @@ module OASISLibrary = struct
           | _ -> fndlb_nm
   
     with Not_found ->
-      failwith 
-        (Printf.sprintf
-           (f_ "Unable to translate internal library '%s' to findlib name")
-           nm)
+      failwithf1
+        (f_ "Unable to translate internal library '%s' to findlib name")
+        nm
   
   (** Return the findlib root name of a group, it takes into account
       containers. So the return group name is the toplevel name
@@ -1082,10 +1472,9 @@ module OASISLibrary = struct
       try
         root_lib_aux grp
       with Not_found ->
-        failwith
-          (Printf.sprintf 
-             "Unable to determine root library of findlib library '%s'"
-             (findlib_of_group grp))
+        failwithf1
+          (f_ "Unable to determine root library of findlib library '%s'")
+          (findlib_of_group grp)
   
 end
 
@@ -1129,12 +1518,18 @@ module OASISTest = struct
       @author Sylvain Le Gall
     *)
   
-  open OASISTypes
+end
+
+module OASISDocumentation = struct
+# 0 "/home/gildor/programmation/oasis/src/oasis/OASISDocumentation.ml"
+  (** Test schema and generator
+      @author Sylvain Le Gall
+    *)
   
 end
 
 
-# 1137 "setup.ml"
+# 1532 "setup.ml"
 module BaseEnvLight = struct
 # 0 "/home/gildor/programmation/oasis/src/base/BaseEnvLight.ml"
   
@@ -1216,7 +1611,43 @@ module BaseEnvLight = struct
 end
 
 
-# 1219 "setup.ml"
+# 1614 "setup.ml"
+module BaseFilePath = struct
+# 0 "/home/gildor/programmation/oasis/src/base/BaseFilePath.ml"
+  
+  (** Manipulate filename
+      @author Sylvain Le Gall
+    *)
+  
+  open Filename
+  
+  module Unix = OASISUnixPath
+  
+  (** Concat elements of a path
+    *)
+  let make =
+    function 
+      | [] ->
+          invalid_arg "BaseFilename.make"
+      | hd :: tl ->
+          List.fold_left Filename.concat hd tl
+  
+  (** Convert a unix filename into host filename
+    *)
+  let of_unix ufn =
+    make
+      (List.map
+         (fun p ->
+            if p = Unix.current_dir_name then
+              current_dir_name
+            else if p = Unix.parent_dir_name then
+              parent_dir_name
+            else
+              p)
+         (OASISUtils.split '/' ufn))
+  
+end
+
 module BaseEnv = struct
 # 0 "/home/gildor/programmation/oasis/src/base/BaseEnv.ml"
   
@@ -1225,6 +1656,8 @@ module BaseEnv = struct
     *)
   
   open OASISTypes
+  open OASISGettext
+  open OASISUtils
   open PropList
   
   (** Origin of the variable, if a variable has been already set
@@ -1271,6 +1704,11 @@ module BaseEnv = struct
   let env = 
     Data.create ()
   
+  (** Lexer for var
+    *)
+  let var_lxr = 
+    Genlex.make_lexer []
+  
   (** Expand variable that can be found in string. Variable follow definition of
     * variable for {!Buffer.add_substitute}.
     *)
@@ -1281,14 +1719,38 @@ module BaseEnv = struct
       Buffer.add_substitute 
         buff
         (fun var -> 
-           try 
-             var_get var 
-           with Unknown_field (_, _) ->
-             failwith 
-               (Printf.sprintf 
-                  "No variable %s defined when trying to expand %S."
-                  var 
-                  str))
+           let st =
+             var_lxr (Stream.of_string var)
+           in
+             try 
+               (* TODO: this is a quick hack to allow calling Test.Command 
+                * without defining executable name really. I.e. if there is
+                * an exec Executable toto, then $(toto) should be replace
+                * by its real name. It is however useful to have this function
+                * for other variable that depend on the host and should be 
+                * written better than that.
+                *)
+               match Stream.npeek 3 st with 
+                 | [Genlex.Ident "utoh"; Genlex.Ident nm] ->
+                     BaseFilePath.of_unix (var_get nm)
+                 | [Genlex.Ident "utoh"; Genlex.String s] ->
+                     BaseFilePath.of_unix s
+                 | [Genlex.Ident "ocaml_escaped"; Genlex.Ident nm] ->
+                     String.escaped (var_get nm)
+                 | [Genlex.Ident "ocaml_escaped"; Genlex.String s] ->
+                     String.escaped s
+                 | [Genlex.Ident nm] ->
+                     var_get nm
+                 | _ ->
+                     failwithf2
+                       (f_ "Unknown expression '%s' in variable expansion of %s.")
+                       var
+                       str
+             with Unknown_field (_, _) ->
+               failwithf2
+                 (f_ "No variable %s defined when trying to expand %S.")
+                 var 
+                 str)
         str;
       Buffer.contents buff
   
@@ -1296,7 +1758,6 @@ module BaseEnv = struct
     *)
   and var_get name =
     let vl = 
-      (* TODO: catch exception that can be raised here at upper level *)
       Schema.get schema env name
     in
       var_expand vl
@@ -1306,12 +1767,7 @@ module BaseEnv = struct
   let var_choose lst =
     OASISExpr.choose 
       var_get 
-      (function
-         | TOs_type       -> var_get "os_type"
-         | TSystem        -> var_get "system"
-         | TArchitecture  -> var_get "architecture"
-         | TCcomp_type    -> var_get "ccomp_type"
-         | TOCaml_version -> var_get "ocaml_version")
+      (fun et -> var_get (OASISExpr.string_of_expr_test et))
       lst
   
   (** Protect a variable content, to avoid expansion
@@ -1340,13 +1796,10 @@ module BaseEnv = struct
         dflt =
   
     let default =
-      (ODefault, dflt)
-      ::
-      (try 
-         [OGetEnv, lazy (Sys.getenv name)] 
-       with Not_found ->
-         [])
-  
+      [
+        ODefault, dflt;
+        OGetEnv, lazy (Sys.getenv name);
+      ]
     in
   
     let extra = 
@@ -1361,36 +1814,42 @@ module BaseEnv = struct
   
     (* Try to find a value that can be defined 
      *)
-    let rec var_get_low = 
-      let rec higher_priority o1 v1 =
-        function
-          | (o2, v2) :: tl ->
-              if o1 < o2 then
-                begin
-                  try 
-                    higher_priority o2 (Lazy.force v2) tl 
-                  with Not_found ->
-                    higher_priority o1 v1 tl
-                end
-              else
-                higher_priority o1 v1 tl
-          | [] ->
-              v1
+    let var_get_low lst = 
+      let errors, res =
+        List.fold_left
+          (fun (errors, res) (_, v) ->
+             if res = None then
+               begin
+                 try 
+                   errors, Some (Lazy.force v)
+                 with
+                   | Not_found ->
+                        errors, res
+                   | Failure rsn ->
+                       (rsn :: errors), res
+                   | e ->
+                       (Printexc.to_string e) :: errors, res
+               end
+             else
+               errors, res)
+          ([], None)
+          (List.sort
+             (fun (o1, _) (o2, _) ->
+                if o1 < o2 then 
+                 1
+                else if o1 = o2 then
+                  0
+                else 
+                 -1)
+             lst)
       in
-  
-        function
-          | (o, v) :: tl -> 
-              begin
-                try 
-                  higher_priority o (Lazy.force v) tl
-                with Not_found ->
-                  var_get_low tl 
-              end
-          | [] ->
-              failwith 
-                (Printf.sprintf 
-                   "Variable %s is not set"
-                   name)
+        match res, errors with 
+          | Some v, _ ->
+              v
+          | None, [] ->
+              raise (Not_set (name, None))
+          | None, lst ->
+              raise (Not_set (name, Some (String.concat (s_ ", ") lst)))
     in
   
     let help =
@@ -1406,7 +1865,7 @@ module BaseEnv = struct
         ~parse:(fun ?(context=ODefault) s -> [context, lazy s])
         ~print:var_get_low
         ~default
-        ~update:(fun x old_x -> x @ old_x)
+        ~update:(fun ?context x old_x -> x @ old_x)
         ?help
         extra
     in
@@ -1481,7 +1940,7 @@ module BaseEnv = struct
     *)
   let load ?(allow_empty=false) ?(filename=default_filename) () =
     if Sys.file_exists filename then
-      (
+      begin
         let chn =
           open_in_bin filename
         in
@@ -1514,21 +1973,19 @@ module BaseEnv = struct
             | [] ->
                 ()
             | _ ->
-                failwith 
-                  (Printf.sprintf 
-                     "Malformed data file '%s' line %d"
-                     filename !line)
+                failwithf2
+                  (f_ "Malformed data file '%s' line %d")
+                  filename !line
         in
           read_file ();
           close_in chn
-      )
+      end
     else if not allow_empty then
-      (
-        failwith 
-          (Printf.sprintf 
-             "Unable to load environment, the file '%s' doesn't exist."
-             filename)
-      )
+      begin
+        failwithf1
+          (f_ "Unable to load environment, the file '%s' doesn't exist.")
+          filename
+      end
   
   (** Uninitialize environment 
     *)
@@ -1568,18 +2025,21 @@ module BaseEnv = struct
         (fun acc nm def short_descr_opt -> 
            if not def.hide || bool_of_string (print_hidden ()) then
              begin
-               let value = 
-                 Schema.get 
-                   schema
-                   env
-                   nm
-               in
-               let txt = 
-                 match short_descr_opt with 
-                   | Some s -> s ()
-                   | None -> nm
-               in
-                 (txt, value) :: acc
+               try 
+                 let value = 
+                   Schema.get 
+                     schema
+                     env
+                     nm
+                 in
+                 let txt = 
+                   match short_descr_opt with 
+                     | Some s -> s ()
+                     | None -> nm
+                 in
+                   (txt, value) :: acc
+               with Not_set _ ->
+                   acc
              end
            else
              acc)
@@ -1608,17 +2068,8 @@ module BaseEnv = struct
   (** Default command line arguments 
     *)
   let args () =
-    let tr_arg str =
-      let buff =
-        Buffer.create (String.length str)
-      in
-        String.iter 
-          (function 
-             | '_' | ' ' | '\n' | '\r' | '\t' -> Buffer.add_char buff '-'
-             | c -> Buffer.add_char buff c
-          )
-          str;
-        Buffer.contents buff
+    let arg_concat =
+      OASISUtils.varname_concat ~hyphen:'-'
     in
       [
         "--override",
@@ -1658,7 +2109,7 @@ module BaseEnv = struct
              in
   
              let arg_name = 
-               tr_arg name
+               OASISUtils.varname_of_string ~hyphen:'-' name
              in
   
              let hlp =
@@ -1673,11 +2124,16 @@ module BaseEnv = struct
                  | None   -> "str"
              in
   
-             let value = 
-               Schema.get
-                 schema
-                 env
-                 name
+             let default_value = 
+               try 
+                 Printf.sprintf 
+                   (f_ " [%s]")
+                   (Schema.get
+                      schema
+                      env
+                      name)
+               with Not_set _ -> 
+                 ""
              in
   
              let args = 
@@ -1686,25 +2142,33 @@ module BaseEnv = struct
                      []
                  | CLIAuto -> 
                      [
-                       "--"^arg_name,
+                       arg_concat "--" arg_name,
                        Arg.String var_set,
-                       arg_hlp^" "^hlp^" ["^value^"]"
+                       Printf.sprintf (f_ "%s %s%s") arg_hlp hlp default_value
                      ]
                  | CLIWith ->
                      [
-                       "--with-"^arg_name,
+                       arg_concat "--with-" arg_name,
                        Arg.String var_set,
-                       arg_hlp^" "^hlp^" ["^value^"]"
+                       Printf.sprintf (f_ "%s %s%s") arg_hlp hlp default_value
                      ]
                  | CLIEnable ->
                      [
-                       "--enable-"^arg_name,
+                       arg_concat "--enable-" arg_name,
                        Arg.Unit (fun () -> var_set "true"),
-                       " "^hlp^(if value = "true" then " [default]" else "");
+                       Printf.sprintf (f_ " %s%s") hlp 
+                         (if default_value = " [true]" then
+                            (s_ " [default]")
+                          else
+                            "");
   
-                       "--disable-"^arg_name,
+                       arg_concat "--disable-" arg_name,
                        Arg.Unit (fun () -> var_set "false"),
-                       " "^hlp^(if value <> "true" then " [default]" else "");
+                       Printf.sprintf (f_ " %s%s") hlp 
+                         (if default_value = " [false]" then
+                            (s_ " [default]")
+                          else
+                            "");
                      ]
                  | CLIUser lst ->
                      lst
@@ -1714,55 +2178,6 @@ module BaseEnv = struct
            schema)
 end
 
-module BaseMessage = struct
-# 0 "/home/gildor/programmation/oasis/src/base/BaseMessage.ml"
-  
-  (** Message to user
-      @author Sylvain Le Gall
-    *)
-  
-  let verbose =
-    ref true
-  
-  (** Print a warning message 
-    *)
-  let warning str =
-    if !verbose then
-      prerr_endline str
-  
-  (** Print an error message and exit.
-    *)
-  let error str =
-    if !verbose then 
-      prerr_endline str;
-    exit 1
-  
-  (** Print information message.
-    *)
-  let info str = 
-    if !verbose then
-      Printf.printf "%s\n%!" str
-  
-  (** Print begin of line when checking for a feature.
-    *)
-  let checking str =
-    if !verbose then
-      Printf.printf "checking for %s... %!" str
-  
-  (** Print end of line when checking for a feature.
-    *)
-  let result str =
-    if !verbose then
-      Printf.printf "%s\n%!" str
-  
-  (** Print result and return it.
-    *)
-  let result_wrap str =
-    result str;
-    str
-  
-end
-
 module BaseExec = struct
 # 0 "/home/gildor/programmation/oasis/src/base/BaseExec.ml"
   
@@ -1770,22 +2185,23 @@ module BaseExec = struct
       @author Sylvain Le Gall
     *)
   
+  open OASISGettext
+  open OASISUtils
+  
   (** Run a command 
     *)
   let run cmd args =
     let cmdline =
       String.concat " " (cmd :: args)
     in
-      BaseMessage.info 
-        (Printf.sprintf "Running command '%s'" cmdline);
+      OASISMessage.info (f_ "Running command '%s'") cmdline;
       match Sys.command cmdline with 
         | 0 ->
             ()
         | i ->
-            failwith 
-              (Printf.sprintf 
-                 "Command '%s' terminated with error code %d"
-                 cmdline i)
+            failwithf2
+              (f_ "Command '%s' terminated with error code %d")
+              cmdline i
   
   (** Run a command and returns its output
     *)
@@ -1825,10 +2241,9 @@ module BaseExec = struct
       | [fst] -> 
           fst
       | lst -> 
-          failwith 
-            (Printf.sprintf
-               "Command return unexpected output %S"
-               (String.concat "\n" lst))
+          failwithf1
+            (f_ "Command return unexpected output %S")
+            (String.concat "\n" lst)
   
 end
 
@@ -1837,6 +2252,8 @@ module BaseFileUtil = struct
   
   (** {1 File operation (install, which...)
     *)
+  
+  open OASISGettext
   
   (** Find a file among all provided alternatives
     *)
@@ -1877,16 +2294,11 @@ module BaseFileUtil = struct
              p ^ e) 
         ((combined_paths paths) * exts)
     in
-      try 
-        List.find Sys.file_exists alternatives
-      with Not_found ->
-        failwith 
-          (Printf.sprintf 
-             "Cannot find any of the files: %s"
-             (String.concat ", " 
-                (List.map 
-                   (Printf.sprintf "%S")
-                   alternatives)))
+      List.find 
+        (fun fn ->
+           OASISMessage.debug (f_ "Testing file existence '%s'") fn;
+           Sys.file_exists fn)
+        alternatives
   
   (** Find real filename of an executable
     *)
@@ -1945,6 +2357,52 @@ module BaseFileUtil = struct
           | _ ->
               BaseExec.run "rm" ["-r"; tgt]
       )
+  
+  (** Expand a filename containing '*.ext' into corresponding
+      real files
+    *)
+  let glob fn = 
+   let basename = 
+     Filename.basename fn
+   in
+     if String.length basename >= 2 &&
+        basename.[0] = '*' &&
+        basename.[1] = '.' then
+       begin
+         let ext_len =
+           (String.length basename) - 2
+         in
+         let ext = 
+           String.sub basename 2 ext_len
+         in
+         let dirname =
+           Filename.dirname fn
+         in
+           Array.fold_left
+             (fun acc fn ->
+                try 
+                  let fn_ext = 
+                    String.sub 
+                      fn 
+                      ((String.length fn) - ext_len) 
+                      ext_len
+                  in
+                    if fn_ext = ext then
+                      (Filename.concat dirname fn) :: acc
+                    else
+                      acc
+                with Invalid_argument _ ->
+                  acc)
+             []
+             (Sys.readdir dirname)
+       end
+     else
+       begin
+         if Sys.file_exists fn then
+           [fn]
+         else
+           []
+       end
 end
 
 module BaseArgExt = struct
@@ -1953,6 +2411,9 @@ module BaseArgExt = struct
   (** Handle command line argument
       @author Sylvain Le Gall
     *)
+  
+  open OASISUtils
+  open OASISGettext
   
   let parse argv args =
       (* Simulate command line for Arg *)
@@ -1965,12 +2426,15 @@ module BaseArgExt = struct
             ~current:current
             (Array.concat [[|"none"|]; argv])
             (Arg.align args)
-            (fun str -> 
-               failwith 
-                 ("Don't know what to do with arguments: '"^str^"'"))
-            "configure options:"
-        with Arg.Help txt | Arg.Bad txt ->
-          BaseMessage.error txt
+            (failwithf1 (f_ "Don't know what to do with arguments: '%s'"))
+            (s_ "configure options:")
+        with 
+          | Arg.Help txt ->
+              print_endline txt;
+              exit 0
+          | Arg.Bad txt ->
+              prerr_endline txt;
+              exit 1
 end
 
 module BaseCheck = struct
@@ -1980,6 +2444,8 @@ module BaseCheck = struct
     *)
   
   open BaseEnv
+  open OASISUtils
+  open OASISGettext
   
   (** Look for a program among a list of alternative program
     * the first found is returned. 
@@ -2041,7 +2507,7 @@ module BaseCheck = struct
                       try 
                         (var_get "ocaml_version")
                       with Not_found ->
-                        BaseMessage.warning 
+                        OASISMessage.warning 
                           "Variable ocaml_version not defined, fallback to default";
                         Sys.ocaml_version
                     end
@@ -2054,12 +2520,11 @@ module BaseCheck = struct
               if OASISVersion.comparator_apply version cmp then
                 version_str
               else
-                failwith 
-                  (Printf.sprintf
-                     "Cannot satisfy version constraint on %s: %s (version: %s)"
-                     var_prefix
-                     (OASISVersion.string_of_comparator cmp)
-                     version_str)))
+                failwithf3
+                  (f_ "Cannot satisfy version constraint on %s: %s (version: %s)")
+                  var_prefix
+                  (OASISVersion.string_of_comparator cmp)
+                  version_str))
         ()
   
   (** Get findlib package version 
@@ -2073,24 +2538,9 @@ module BaseCheck = struct
     *)
   let package ?version_comparator pkg () =
     let var =
-      let buff = 
-        Buffer.create ((String.length pkg) + 4)
-      in
-        Buffer.add_string buff "pkg_";
-        String.iter
-          (fun c ->
-             if ('a' <= c && c <= 'z') 
-               || 
-                ('A' <= c && c <= 'Z') 
-               || 
-                ('0' <= c && c <= '9')
-               ||
-                c = '_' then
-               Buffer.add_char buff c
-             else
-               Buffer.add_char buff '_')
-          pkg;
-        Buffer.contents buff
+      OASISUtils.varname_concat 
+        "pkg_" 
+        (OASISUtils.varname_of_string pkg)
     in
     let findlib_dir pkg = 
       let dir = 
@@ -2098,14 +2548,13 @@ module BaseCheck = struct
           (ocamlfind ())
           ["query"; "-format"; "%d"; pkg]
       in
-        if Sys.is_directory dir then
+        if Sys.file_exists dir && Sys.is_directory dir then
           dir
         else
-          failwith
-            (Printf.sprintf
-               "When looking for findlib package %s, \
-                directory %s return doesn't exist"
-               pkg dir)
+          failwithf2
+            (f_ "When looking for findlib package %s, \
+                 directory %s return doesn't exist")
+            pkg dir
     in
     let vl =
       var_redefine
@@ -2136,6 +2585,8 @@ module BaseOCamlcConfig = struct
     *)
   
   open BaseEnv
+  open OASISUtils
+  open OASISGettext
   
   module SMap = Map.Make(String)
   
@@ -2224,11 +2675,10 @@ module BaseOCamlcConfig = struct
               in
                 value
             with Not_found ->
-              failwith
-                (Printf.sprintf 
-                   "Cannot find field '%s' in '%s -config' output"
-                   nm
-                   (ocamlc ()))))
+              failwithf2
+                (f_ "Cannot find field '%s' in '%s -config' output")
+                nm
+                (ocamlc ())))
   
 end
 
@@ -2239,8 +2689,59 @@ module BaseStandardVar = struct
       @author Sylvain Le Gall
     *)
   
+  open OASISGettext
+  open OASISTypes
   open BaseCheck
   open BaseEnv
+  
+  (** {2 Programs} *)
+  
+  let ocamlfind  = BaseCheck.ocamlfind
+  let ocamlc     = BaseOCamlcConfig.ocamlc
+  let ocamlopt   = prog_opt "ocamlopt"
+  let ocamlbuild = prog "ocamlbuild"
+  
+  
+  (** {2 OCaml config variable} *) 
+  
+  let c = BaseOCamlcConfig.var_define 
+  let stdc et = BaseOCamlcConfig.var_define (OASISExpr.string_of_expr_test et)
+  
+  let os_type        = stdc TOs_type
+  let system         = stdc TSystem
+  let architecture   = stdc TArchitecture
+  let ccomp_type     = stdc TCcomp_type
+  let ocaml_version  = stdc TOCaml_version
+  
+  (* Check variable presence *)
+  let () = 
+    if false then 
+      let v_of_et =
+        function
+          | TOs_type       -> os_type        
+          | TSystem        -> system         
+          | TArchitecture  -> architecture   
+          | TCcomp_type    -> ccomp_type     
+          | TOCaml_version -> ocaml_version  
+      in
+      let _lst : 'a list =
+        List.map v_of_et OASISExpr.expr_tests
+      in 
+        ()
+  
+  let standard_library_default = c "standard_library_default"
+  let standard_library         = c "standard_library"
+  let standard_runtime         = c "standard_runtime"
+  let bytecomp_c_compiler      = c "bytecomp_c_compiler"
+  let native_c_compiler        = c "native_c_compiler"
+  let model                    = c "model"
+  let ext_obj                  = c "ext_obj"
+  let ext_asm                  = c "ext_asm"
+  let ext_lib                  = c "ext_lib"
+  let ext_dll                  = c "ext_dll"
+  let default_executable_name  = c "default_executable_name"
+  let systhread_supported      = c "systhread_supported"
+  
   
   (** {2 Paths} *)
   
@@ -2259,7 +2760,8 @@ module BaseStandardVar = struct
   
   let prefix = 
     p "prefix"
-      "install architecture-independent files dir"
+      (s_ "Install architecture-independent files dir")
+      (* TODO: we should use os_type () here rather than Sys.os_type *)
       (match Sys.os_type with
          | "Win32" ->
              "%PROGRAMFILES%\\$pkg_name"
@@ -2268,37 +2770,37 @@ module BaseStandardVar = struct
         
   let exec_prefix = 
     p "exec_prefix"
-      "Install architecture-dependent files in dir"
+      (s_ "Install architecture-dependent files in dir")
       "$prefix"
   
   let bindir =
     p "bindir"
-      "User executables"
+      (s_ "User executables")
       ("$exec_prefix"/"bin")
   
   let sbindir =
     p "sbindir"
-      "System admin executables"
+      (s_ "System admin executables")
       ("$exec_prefix"/"sbin")
   
   let libexecdir =
     p "libexecdir"
-      "Program executables"
+      (s_ "Program executables")
       ("$exec_prefix"/"libexec")
   
   let sysconfdir =
     p "sysconfdir"
-      "Read-only single-machine data"
+      (s_ "Read-only single-machine data")
       ("$prefix"/"etc")
   
   let sharedstatedir =
     p "sharedstatedir"
-      "Modifiable architecture-independent data"
+      (s_ "Modifiable architecture-independent data")
       ("$prefix"/"com")
   
   let localstatedir =
     p "localstatedir"
-      "Modifiable single-machine data"
+      (s_ "Modifiable single-machine data")
       ("$prefix"/"var")
   
   let libdir =
@@ -2308,83 +2810,65 @@ module BaseStandardVar = struct
   
   let datarootdir =
     p "datarootdir"
-      "Read-only arch.-independent data root"
+      (s_ "Read-only arch-independent data root")
       ("$prefix"/"share")
   
   let datadir =
     p "datadir"
-      "Read-only architecture-independent data"
+      (s_ "Read-only architecture-independent data")
       "$datarootdir"
   
   let infodir =
     p "infodir"
-      "Info documentation"
+      (s_ "Info documentation")
       ("$datarootdir"/"info")
   
   let localedir =
     p "localedir"
-      "Locale-dependent data"
+      (s_ "Locale-dependent data")
       ("$datarootdir"/"locale")
   
   let mandir =
     p "mandir"
-      "Man documentation"
+      (s_ "Man documentation")
       ("$datarootdir"/"man")
   
   let docdir =
     p "docdir"
-      "Documentation root"
+      (s_ "Documentation root")
       ("$datarootdir"/"doc"/"$pkg_name")
   
   let htmldir =
     p "htmldir"
-      "HTML documentation"
+      (s_ "HTML documentation")
       "$docdir"
   
   let dvidir =
     p "dvidir"
-      "DVI documentation"
+      (s_ "DVI documentation")
       "$docdir"
   
   let pdfdir =
     p "pdfdir"
-      "PDF documentation"
+      (s_ "PDF documentation")
       "$docdir"
   
   let psdir =
     p "psdir"
-      "PS documentation"
+      (s_ "PS documentation")
       "$docdir"
   
-  (** {2 Programs} *)
-  
-  let ocamlfind  = BaseCheck.ocamlfind
-  let ocamlc     = BaseOCamlcConfig.ocamlc
-  let ocamlopt   = prog_opt "ocamlopt"
-  let ocamlbuild = prog "ocamlbuild"
-  
-  
-  (** {2 OCaml config variable} *) 
-  
-  let c = BaseOCamlcConfig.var_define 
-  
-  let ocaml_version            = c "version"
-  let standard_library_default = c "standard_library_default"
-  let standard_library         = c "standard_library"
-  let standard_runtime         = c "standard_runtime"
-  let ccomp_type               = c "ccomp_type"
-  let bytecomp_c_compiler      = c "bytecomp_c_compiler"
-  let native_c_compiler        = c "native_c_compiler"
-  let architecture             = c "architecture"
-  let model                    = c "model"
-  let system                   = c "system"
-  let ext_obj                  = c "ext_obj"
-  let ext_asm                  = c "ext_asm"
-  let ext_lib                  = c "ext_lib"
-  let ext_dll                  = c "ext_dll"
-  let os_type                  = c "os_type"
-  let default_executable_name  = c "default_executable_name"
-  let systhread_supported      = c "systhread_supported"
+  let destdir =
+    var_define
+      ~short_desc:(s_ "Prepend a path when installing package")
+      ~cli:CLIAuto 
+      ~arg_help:"dir" 
+      "destdir"
+      (lazy 
+         (raise 
+            (PropList.Not_set
+               ("destdir", 
+                Some (s_ "undefined by construct")))))
   
   (** {2 ...} *)
   
@@ -2396,22 +2880,23 @@ module BaseStandardVar = struct
       (lazy 
          (BaseCheck.package_version "findlib"))
   
-  (** Check what is the best target for platform (opt/byte)
+  (** Check that the platform is a native platform (can compile native
+      exec/library).
     *)
-  let ocamlbest =
+  let is_native =
     var_define
-      "ocamlbest"
-      (lazy 
+      "is_native"
+      (lazy
          (try
             let _s : string = 
               ocamlopt ()
             in
-              "native"
-          with Not_found ->
+              "true"
+          with PropList.Not_set _ ->
             let _s : string = 
               ocamlc ()
             in
-             "byte"))
+              "false"))
   
   (** Compute the default suffix for program (target OS dependent)
     *)
@@ -2434,20 +2919,18 @@ module BaseStandardVar = struct
   let pkg_get () =
     match !rpkg with 
       | Some pkg -> pkg
-      | None -> 
-          failwith 
-            "OASIS Package is not set"
+      | None -> failwith (s_ "OASIS Package is not set")
   (**/**)
   
   let pkg_name = 
     var_define
-      ~short_desc:"Package name"
+      ~short_desc:(s_ "Package name")
       "pkg_name"
       (lazy (fst (pkg_get ())))
   
   let pkg_version =
     var_define
-      ~short_desc:"Package version"
+      ~short_desc:(s_ "Package version")
       "pkg_version"
       (lazy 
          (OASISVersion.string_of_version 
@@ -2474,13 +2957,13 @@ module BaseFileAB = struct
     *)
   
   open BaseEnv
+  open OASISGettext
   
   let to_filename fn =
     if not (Filename.check_suffix fn ".ab") then
-      BaseMessage.warning 
-        (Printf.sprintf 
-           "File '%s' doesn't have '.ab' extension"
-           fn);
+      OASISMessage.warning 
+        (f_ "File '%s' doesn't have '.ab' extension")
+        fn;
     Filename.chop_extension fn
   
   (** Replace variable in file %.ab to generate %
@@ -2522,11 +3005,15 @@ module BaseLog = struct
   
   open OASISUtils
   
+  (** Default file for registering log
+    *)
   let default_filename =
     Filename.concat 
       (Filename.dirname BaseEnv.default_filename)
       "setup.log"
   
+  (** Load the log file
+    *)
   let load () = 
     if Sys.file_exists default_filename then
       (
@@ -2552,6 +3039,8 @@ module BaseLog = struct
         []
       )
   
+  (** Add an event to the log file
+    *)
   let register event data =
     let chn_out =
       open_out_gen [Open_append; Open_creat; Open_text] 0o644 default_filename
@@ -2559,6 +3048,8 @@ module BaseLog = struct
       Printf.fprintf chn_out "%S %S\n" event data;
       close_out chn_out
   
+  (** Remove an event from the log file
+    *)
   let unregister event data =
     let lst = 
       load ()
@@ -2569,10 +3060,12 @@ module BaseLog = struct
       List.iter 
         (fun (e, d) ->
            if e <> event || d <> data then
-             Printf.fprintf chn_out "%S %S\n" event data)
+             Printf.fprintf chn_out "%S %S\n" e d)
         lst;
       close_out chn_out
   
+  (** Filter events of the log file
+    *)
   let filter events =
     let st_events =
       List.fold_left
@@ -2584,6 +3077,152 @@ module BaseLog = struct
       List.filter 
         (fun (e, _) -> SetString.mem e st_events)
         (load ())
+  
+  (** Check if an event exists in the log file 
+    *)
+  let exists event data =
+    List.exists
+      (fun v -> (event, data) = v)
+      (load ())
+end
+
+module BaseBuilt = struct
+# 0 "/home/gildor/programmation/oasis/src/base/BaseBuilt.ml"
+  
+  (** Register files built to be installed
+      @author Sylvain Le Gall
+    *)
+  
+  open OASISTypes
+  open OASISGettext
+  open BaseStandardVar
+  
+  type filenames = filename list
+  
+  type t =
+    | BExec    (* Executable *)
+    | BExecLib (* Library coming with executable *)
+    | BLib     (* Library *)
+    | BDoc     (* Documentation *)
+  
+  let to_log_event t nm = 
+    "built_"^
+    (match t with 
+       | BExec -> "exec"
+       | BExecLib -> "exec_lib"
+       | BLib -> "lib"
+       | BDoc -> "doc")^
+    "_"^nm
+  
+  (* Register files built *)
+  let register t nm lst = 
+    List.iter
+      (fun fn ->
+         BaseLog.register 
+           (to_log_event t nm)
+           fn)
+      lst
+  
+  (* Unregister all files built *)
+  let unregister t nm =
+    List.iter
+      (fun (e, d) ->
+         BaseLog.unregister e d)
+      (BaseLog.filter [to_log_event t nm])
+  
+  (* Fold-left files built, filter existing
+     and non-existing files.
+   *)
+  let fold t nm f acc = 
+    List.fold_left 
+      (fun acc (_, fn) ->
+         if Sys.file_exists fn then
+           begin
+             f acc fn
+           end
+         else
+           begin
+             OASISMessage.warning 
+               (f_ "File '%s' has been marked as built \
+                  for %s but doesn't exist")
+               fn
+               (Printf.sprintf
+                  (match t with 
+                     | BExec | BExecLib -> 
+                         (f_ "executable %s")
+                     | BLib ->
+                         (f_ "library %s")
+                     | BDoc ->
+                         (f_ "documentation %s"))
+                  nm);
+             acc
+           end)
+      acc
+      (BaseLog.filter
+         [to_log_event t nm])
+  
+  (** Generate the list of files that should be built for 
+      an executable.
+    *)
+  let of_executable ffn (cs, bs, exec) = 
+    let unix_exec_is, unix_dll_opt = 
+      OASISExecutable.unix_exec_is 
+        (cs, bs, exec)
+        (fun () -> 
+           bool_of_string 
+             (is_native ()))
+        ext_dll
+        suffix_program
+    in
+    let evs = 
+      (BExec, cs.cs_name, [ffn unix_exec_is])
+      ::
+      (match unix_dll_opt with
+         | Some fn ->
+             [BExecLib, cs.cs_name, [ffn fn]]
+         | None ->
+             [])
+    in
+      evs,
+      unix_exec_is,
+      unix_dll_opt
+  
+  (** Generate the list of files that should be built for
+      a library
+    *)
+  let of_library ffn (cs, bs, lib) = 
+    let unix_lst = 
+      OASISLibrary.generated_unix_files
+        (cs, bs, lib)
+        (fun fn ->
+           Sys.file_exists (BaseFilePath.of_unix fn))
+        (fun () ->
+           bool_of_string (is_native ()))
+        ext_lib
+        ext_dll
+    in
+    let evs =
+      [BLib,
+       cs.cs_name,
+       List.map ffn unix_lst]
+    in
+      evs, unix_lst
+  
+  (* Unregister all build event related to a package
+   *)
+  let clean_all pkg =
+      List.fold_left
+        (fun () ->
+           function
+             | Library (cs, _, _) -> 
+                 unregister BLib cs.cs_name
+             | Executable (cs, _, _) ->
+                 unregister BExec cs.cs_name;
+                 unregister BExecLib cs.cs_name
+             | Flag _ | SrcRepo _ | Doc _ | Test _ ->
+                 ())
+        ()
+        pkg.sections
 end
 
 module BaseTest = struct
@@ -2594,8 +3233,10 @@ module BaseTest = struct
     *)
   
   open BaseEnv
+  open OASISMessage
   open OASISTypes
   open OASISExpr
+  open OASISGettext
   
   let test lst pkg extra_args =
   
@@ -2603,8 +3244,7 @@ module BaseTest = struct
       if var_choose test.test_run then
         begin
           let () = 
-            BaseMessage.info 
-              (Printf.sprintf "Running test '%s'" cs.cs_name)
+            info (f_ "Running test '%s'") cs.cs_name
           in
           let back_cwd = 
             match test.test_working_directory with 
@@ -2613,8 +3253,7 @@ module BaseTest = struct
                     Sys.getcwd ()
                   in
                   let chdir d =
-                    BaseMessage.info 
-                      (Printf.sprintf "Changing directory to '%s'" d);
+                    info (f_ "Changing directory to '%s'") d;
                     Sys.chdir d
                   in
                     chdir dir;
@@ -2637,8 +3276,7 @@ module BaseTest = struct
         end
       else
         begin
-          BaseMessage.info 
-            (Printf.sprintf "Skipping test '%s'" cs.cs_name);
+          info (f_ "Skipping test '%s'") cs.cs_name;
           0.0
         end
     in
@@ -2657,12 +3295,37 @@ module BaseTest = struct
         res
     in
       (if failure_percent > 0.0 then
-         BaseMessage.warning 
+         warning 
        else
-         BaseMessage.info)
-        (Printf.sprintf 
-           "Tests had a %.2f%% failure rate"
-           (100. *. failure_percent))
+         info)
+        (f_ "Tests had a %.2f%% failure rate")
+        (100. *. failure_percent)
+  
+end
+
+module BaseDoc = struct
+# 0 "/home/gildor/programmation/oasis/src/base/BaseDoc.ml"
+  
+  (** Build documentation
+      @author Sylvain Le Gall
+    *)
+  
+  open BaseEnv
+  open OASISTypes
+  open OASISGettext
+  
+  let doc lst pkg extra_args =
+  
+    let one_doc (doc_plugin, cs, doc) = 
+      if var_choose doc.doc_build then
+        begin
+          OASISMessage.info (f_ "Building documentation '%s'") cs.cs_name;
+          doc_plugin pkg (cs, doc) extra_args
+        end
+    in
+      List.iter 
+        one_doc
+        lst
   
 end
 
@@ -2674,8 +3337,11 @@ module BaseSetup = struct
     *)
   
   open BaseEnv
+  open OASISMessage
   open OASISTypes
   open OASISSection
+  open OASISGettext
+  open OASISUtils
   
   type std_args_fun = 
       package -> string array -> unit
@@ -2687,18 +3353,37 @@ module BaseSetup = struct
       {
         configure:       std_args_fun;
         build:           std_args_fun;
-        doc:             ((unit, unit)  section_args_fun) list;
+        doc:             ((doc, unit)  section_args_fun) list;
         test:            ((test, float) section_args_fun) list;
         install:         std_args_fun;
         uninstall:       std_args_fun;
         clean:           std_args_fun list;
-        clean_doc:       (unit, unit) section_args_fun list;
+        clean_doc:       (doc, unit) section_args_fun list;
         clean_test:      (test, unit) section_args_fun list;
         distclean:       std_args_fun list;
-        distclean_doc:   (unit, unit) section_args_fun list;
+        distclean_doc:   (doc, unit) section_args_fun list;
         distclean_test:  (test, unit) section_args_fun list;
         package:         package;
       } 
+  
+  (** Associate a plugin function with data from package
+    *)
+  let join_plugin_sections filter_map lst =
+    List.rev
+      (List.fold_left
+         (fun acc sct ->
+            try 
+              match filter_map sct with 
+                | Some e ->
+                    e :: acc
+                | None ->
+                    acc
+            with Not_found ->
+              failwithf1
+                (f_ "Cannot find plugin matching %s")
+                (OASISSection.string_of_section sct))
+         []
+         lst)
   
   (** Configure step *)
   let configure t args = 
@@ -2718,24 +3403,33 @@ module BaseSetup = struct
   
   (** Documentation step *)
   let doc t args =
-    (* TODO: documentation run *)
-    ()
+    BaseDoc.doc
+      (join_plugin_sections
+         (function 
+            | Doc (cs, e) -> 
+                Some 
+                  (List.assoc cs.cs_name t.doc,
+                   cs,
+                   e)
+            | _ -> 
+                None)
+         t.package.sections)
+      t.package
+      args
   
   (** Test step *)
   let test t args = 
     BaseTest.test 
-      (List.rev
-         (List.fold_left 
-            (fun acc ->
-               function
-                 | Test (cs, test) ->
-                     (List.assoc cs.cs_name t.test,
-                      cs, 
-                      test) :: acc
-                 | _ ->
-                     acc)
-            []
-            t.package.sections))
+      (join_plugin_sections
+         (function 
+            | Test (cs, e) -> 
+                Some 
+                  (List.assoc cs.cs_name t.test,
+                   cs,
+                   e)
+            | _ -> 
+                None)
+         t.package.sections)
       t.package
       args
   
@@ -2761,7 +3455,8 @@ module BaseSetup = struct
            | Library _ 
            | Executable _
            | Flag _ 
-           | SrcRepo _ ->
+           | SrcRepo _
+           | Doc _ ->
                ())
         t.package.sections;
       (* Clean whole package *)
@@ -2783,9 +3478,10 @@ module BaseSetup = struct
       List.iter
         (fun fn ->
            if Sys.file_exists fn then
-             (BaseMessage.info 
-                (Printf.sprintf "Remove '%s'" fn);
-              Sys.remove fn))
+             begin
+               info (f_ "Remove '%s'") fn;
+               Sys.remove fn
+             end)
         (BaseEnv.default_filename 
          :: 
          BaseLog.default_filename
@@ -2799,113 +3495,198 @@ module BaseSetup = struct
       clean, distclean
   
   let setup t = 
-    try
-      let act_ref =
-        ref (fun _ -> 
-               failwith
-                 (Printf.sprintf
-                    "No action defined, run '%s %s -help'"
-                    Sys.executable_name
-                    Sys.argv.(0)))
+    let catch_exn =
+      ref true
+    in
+      try
+        let act_ref =
+          ref (fun _ -> 
+                 failwithf2
+                   (f_ "No action defined, run '%s %s -help'")
+                   Sys.executable_name
+                   Sys.argv.(0))
   
-      in
-      let extra_args_ref =
-        ref []
-      in
-      let allow_empty_env_ref = 
-        ref false
-      in
+        in
+        let extra_args_ref =
+          ref []
+        in
+        let allow_empty_env_ref = 
+          ref false
+        in
+        let arg_handle ?(allow_empty_env=false) act =
+          Arg.Tuple
+            [
+              Arg.Rest (fun str -> extra_args_ref := str :: !extra_args_ref);
   
-      let arg_handle ?(allow_empty_env=false) act =
-        Arg.Tuple
-          [
-            Arg.Rest (fun str -> extra_args_ref := str :: !extra_args_ref);
+              Arg.Unit 
+                (fun () -> 
+                   allow_empty_env_ref := allow_empty_env;
+                   act_ref := act);
+            ]
+        in
   
-            Arg.Unit 
-              (fun () -> 
-                 allow_empty_env_ref := allow_empty_env;
-                 act_ref := act);
-          ]
-      in
+          Arg.parse 
+            (Arg.align
+               [
+                 "-configure",
+                 arg_handle ~allow_empty_env:true configure,
+                 s_ "[options*] Configure build process.";
   
-        Arg.parse 
-          [
-            "-configure",
-            arg_handle ~allow_empty_env:true configure,
-            "[options*] Configure build process.";
+                 "-build",
+                 arg_handle build,
+                 s_ "[options*] Run build process.";
   
-            "-build",
-            arg_handle build,
-            "[options*] Run build process.";
+                 "-doc",
+                 arg_handle doc,
+                 s_ "[options*] Build documentation.";
   
-            "-doc",
-            arg_handle doc,
-            "[options*] Build documentation.";
+                 "-test",
+                 arg_handle test,
+                 s_ "[options*] Run tests.";
   
-            "-test",
-            arg_handle test,
-            "[options*] Build and run tests.";
+                 "-install",
+                 arg_handle install,
+                 s_ "[options*] Install libraries, data, executables \
+                                and documentations.";
   
-            "-install",
-            arg_handle install,
-            "[options*] Install library, data, executable and documentation.";
+                 "-uninstall",
+                 arg_handle uninstall,
+                 s_ "[options*] Uninstall libraries, data, executables \
+                                and documentations.";
   
-            "-uninstall",
-            arg_handle uninstall,
-            "[options*] Uninstall library, data, executable and documentation.";
+                 "-clean",
+                 arg_handle ~allow_empty_env:true clean,
+                 s_ "[options*] Clean build environment.";
   
-            "-clean",
-            arg_handle ~allow_empty_env:true clean,
-            "[options*] Clean build environment.";
+                 "-distclean",
+                 arg_handle ~allow_empty_env:true distclean,
+                 s_ "[options*] Clean build and configure environment.";
   
-            "-distclean",
-            arg_handle ~allow_empty_env:true distclean,
-            "[options*] Clean build and configure environment.";
-          ]
-          (fun str -> failwith ("Don't know what to do with "^str))
-          "Setup and run build process current package\n";
+                 "-no-catch-exn",
+                 Arg.Clear catch_exn,
+                 s_ " Don't catch exception, useful for debugging.";
+               ] 
+             @ OASISMessage.args
+             @ args)
+            (failwithf1 (f_ "Don't know what to do with '%s'"))
+            (s_ "Setup and run build process current package\n");
   
-        (* Build initial environment *)
-        load ~allow_empty:!allow_empty_env_ref ();
+          (* Build initial environment *)
+          load ~allow_empty:!allow_empty_env_ref ();
   
-        (** Initialize flags *)
-        List.iter
-          (function
-             | Flag (cs, {flag_description = hlp; 
-                          flag_default = choices}) ->
-                 begin
-                   let apply ?short_desc () = 
-                     var_ignore
-                       (var_define
-                          ~cli:CLIAuto
-                          ?short_desc
-                          cs.cs_name
-                          (lazy (string_of_bool 
-                                   (var_choose choices))))
-                   in
-                     match hlp with 
-                       | Some hlp ->
-                           apply ~short_desc:hlp ()
-                       | None ->
-                           apply ()
-                 end
-             | _ -> 
-                 ())
-          t.package.sections;
+          (** Initialize flags *)
+          List.iter
+            (function
+               | Flag (cs, {flag_description = hlp; 
+                            flag_default = choices}) ->
+                   begin
+                     let apply ?short_desc () = 
+                       var_ignore
+                         (var_define
+                            ~cli:CLIAuto
+                            ?short_desc
+                            cs.cs_name
+                            (lazy (string_of_bool 
+                                     (var_choose choices))))
+                     in
+                       match hlp with 
+                         | Some hlp ->
+                             apply ~short_desc:hlp ()
+                         | None ->
+                             apply ()
+                   end
+               | _ -> 
+                   ())
+            t.package.sections;
   
-        BaseStandardVar.init (t.package.name, t.package.version);
+          BaseStandardVar.init (t.package.name, t.package.version);
   
-        !act_ref t (Array.of_list (List.rev !extra_args_ref))
+          !act_ref t (Array.of_list (List.rev !extra_args_ref))
   
-    with e ->
-      BaseMessage.error (Printexc.to_string e);
+      with e when !catch_exn ->
+        begin
+          try 
+            error "%s" (PropList.string_of_exception e)
+          with e ->
+            error "%s" (Printexc.to_string e)
+        end
+  
+end
+
+module BaseDev = struct
+# 0 "/home/gildor/programmation/oasis/src/base/BaseDev.ml"
+  
+  (** Entry points for setup.ml in dev mode
+    *)
+  
+  
+  
+  open OASISGettext
+  
+  type t = 
+      {
+        oasis_cmd:  string;
+        oasis_args: string list;
+        self_fn:    string;
+      } 
+  
+  let update_and_run t = 
+    let dev_fn = 
+      "setup-dev.ml"
+    in
+  
+    (* Command to run after creation of dev_fn *)
+    let bootstrap_ocaml = 
+      Sys.executable_name
+    in
+    let bootstrap_args =
+      Array.to_list
+        (Array.map
+           (fun a ->
+              if a = t.self_fn then
+                dev_fn
+              else
+                a)
+           Sys.argv)
+    in
+  
+    let safe_exit () = 
+      if Sys.file_exists dev_fn then
+        Sys.remove dev_fn
+    in
+  
+      if Sys.file_exists dev_fn then
+        OASISMessage.error
+          (f_ "File %s already exists, cannot generate it for \
+               dev-mode. Please remove it first.")
+          dev_fn;
+  
+      try 
+        (* Run OASIS to generate a temporary setup.ml
+         *)
+        BaseExec.run 
+          t.oasis_cmd 
+          ("-quiet" :: "-setup-fn" :: dev_fn :: t.oasis_args);
+        (* Run own command line by replacing setup.ml by 
+         * setup-dev.ml
+         *)
+        BaseExec.run
+          bootstrap_ocaml
+          bootstrap_args;
+  
+        (* Clean dev file *)
+        safe_exit ()
+  
+      with e ->
+        safe_exit ();
+        raise e
   
 end
 
 
-# 2906 "setup.ml"
-module InternalConfigure = struct
-# 0 "/home/gildor/programmation/oasis/src/internal/InternalConfigure.ml"
+# 3687 "setup.ml"
+module InternalConfigurePlugin = struct
+# 0 "/home/gildor/programmation/oasis/src/plugins/internal/InternalConfigurePlugin.ml"
   
   (** Configure using internal scheme
       @author Sylvain Le Gall
@@ -2913,6 +3694,8 @@ module InternalConfigure = struct
   
   open BaseEnv
   open OASISTypes
+  open OASISUtils
+  open OASISGettext
   
   (** Configure build using provided series of check to be done
     * and then output corresponding file.
@@ -2925,33 +3708,45 @@ module InternalConfigure = struct
         ()
     in
   
-    let build_checks bs =
+    (* Check tools *)
+    let check_tools lst =
+      List.iter 
+        (function
+           | ExternalTool tool -> 
+               var_ignore_eval (BaseCheck.prog tool)
+           | InternalExecutable nm1 ->
+               (* Check that matching tool is built *)
+               List.iter
+                 (function
+                    | Executable ({cs_name = nm2}, 
+                                  {bs_build = build}, 
+                                  _) when nm1 = nm2 ->
+                         if not (var_choose build) then
+                           failwithf1
+                             (f_ "Cannot find buildable internal executable \
+                                  '%s' when checking build depends")
+                             nm1
+                    | _ ->
+                        ())
+                 pkg.sections)
+        lst
+    in
+  
+    let build_checks sct bs =
       if var_choose bs.bs_build then
         begin
+          if bs.bs_compiled_object = Native then
+            begin
+              try 
+                var_ignore_eval BaseStandardVar.ocamlopt
+              with PropList.Not_set _ ->
+                failwithf1
+                  (f_ "Section %s requires native compilation")
+                  (OASISSection.string_of_section sct)
+            end;
+  
           (* Check tools *)
-          List.iter 
-            (function
-               | ExternalTool tool -> 
-                   var_ignore_eval (BaseCheck.prog tool)
-               | InternalExecutable nm1 ->
-                   (* Check that matching tool is built *)
-                   List.iter
-                     (function
-                        | Executable ({cs_name = nm2}, 
-                                      {bs_build = build}, 
-                                      _) when nm1 = nm2 ->
-                             if not (var_choose build) then
-                               failwith 
-                                 (Printf.sprintf
-                                    "Cannot find buildable internal executable \
-                                     '%s' when checking build depends"
-                                    nm1)
-                             else
-                               ()
-                        | _ ->
-                            ())
-                     pkg.sections)
-            bs.bs_build_tools;
+          check_tools bs.bs_build_tools;
   
           (* Check depends *)
           List.iter  
@@ -2967,13 +3762,10 @@ module InternalConfigure = struct
                                    {bs_build = build}, 
                                    _) when nm1 = nm2 ->
                              if not (var_choose build) then
-                               failwith 
-                                 (Printf.sprintf
-                                    "Cannot find buildable internal library \
-                                     '%s' when checking build depends"
-                                    nm1)
-                             else
-                               ()
+                               failwithf1 
+                                 (f_ "Cannot find buildable internal library \
+                                      '%s' when checking build depends")
+                                 nm1
                         | _ ->
                             ())
                      pkg.sections)
@@ -3004,8 +3796,14 @@ module InternalConfigure = struct
     List.iter
       (function
          | Executable (_, bs, _)
-         | Library (_, bs, _) ->
-             build_checks bs
+         | Library (_, bs, _) as sct ->
+             build_checks sct bs
+         | Doc (_, doc) ->
+             if var_choose doc.doc_build then
+               check_tools doc.doc_build_tools
+         | Test (_, test) ->
+             if var_choose test.test_run then
+               check_tools test.test_build_tools
          | _ ->
              ())
       pkg.sections;
@@ -3016,8 +3814,8 @@ module InternalConfigure = struct
   
 end
 
-module InternalInstall = struct
-# 0 "/home/gildor/programmation/oasis/src/internal/InternalInstall.ml"
+module InternalInstallPlugin = struct
+# 0 "/home/gildor/programmation/oasis/src/plugins/internal/InternalInstallPlugin.ml"
   
   (** Install using internal scheme
       @author Sylvain Le Gall
@@ -3025,30 +3823,20 @@ module InternalInstall = struct
   
   open BaseEnv
   open BaseStandardVar
+  open OASISMessage
   open OASISTypes
   open OASISLibrary
-  
-  let srcdir =
-    var_define
-      "srcdir"
-      (lazy ".")
-  
-  let builddir =
-    var_define
-      "builddir"
-      (lazy (Filename.concat (srcdir ()) "_build"))
-  
-  let dllfn path name = 
-    Filename.concat path ("dll"^name^(ext_dll ()))
-  
-  let libfn path name =
-    Filename.concat path ("lib"^name^(ext_lib ()))
+  open OASISGettext
+  open OASISUtils
   
   let exec_hook =
     ref (fun (cs, bs, exec) -> cs, bs, exec)
   
   let lib_hook =
     ref (fun (cs, bs, lib) -> cs, bs, lib, [])
+  
+  let doc_hook =
+    ref (fun (cs, doc) -> cs, doc)
   
   let install_file_ev = 
     "install-file"
@@ -3060,62 +3848,23 @@ module InternalInstall = struct
     "install-findlib"
   
   let install pkg argv =
-    let rootdirs =
-      [srcdir (); builddir ()]
-    in
   
-    let ( * ) lst1 lst2 = 
-      List.flatten 
-        (List.map 
-           (fun a -> 
-              List.map 
-                (fun b -> a,b) 
-                lst2) 
-           lst1)
-    in
-  
-    let make_filename =
-      function
-        | [] -> "" 
-        | hd :: tl  -> List.fold_left Filename.concat hd tl
-    in
-  
-    let make_module nm = 
-      [String.capitalize nm; String.uncapitalize nm]
-    in
-  
-    let find_file f lst = 
-      let alternatives =
-        List.map (fun e -> make_filename (f e)) lst
-      in
-        try 
-          List.find Sys.file_exists alternatives
-        with Not_found ->
-          failwith 
-            (Printf.sprintf 
-               "Cannot find any of the files: %s"
-               (String.concat ", " 
-                  (List.map 
-                     (Printf.sprintf "%S")
-                     alternatives)))
-    in
-  
-    let find_build_file fn =
-      find_file
-        (fun rootdir -> [rootdir; fn])
-        rootdirs
-    in
-  
-    let is_native comp_type =
-      match comp_type with 
-        | Best -> (ocamlbest ()) = "native" 
-        | Byte -> false
-        | Native -> true
+    let in_destdir =
+      try 
+        let destdir =
+          destdir () 
+        in
+          (* Practically speaking destdir is prepended
+           * at the beginning of the target filename
+           *)
+          fun fn -> destdir^fn
+      with PropList.Not_set _ ->
+        fun fn -> fn
     in
   
     let install_file src_file envdir = 
       let tgt_dir = 
-        envdir ()
+        in_destdir (envdir ())
       in
       let tgt_file =
         Filename.concat 
@@ -3125,20 +3874,13 @@ module InternalInstall = struct
         (* Check that target directory exist *)
         if not (Sys.file_exists tgt_dir) then
           (
-            BaseMessage.info 
-              (Printf.sprintf 
-                 "Creating directory '%s'"
-                 tgt_dir);
+            info (f_ "Creating directory '%s'") tgt_dir;
             BaseFileUtil.mkdir tgt_dir;
             BaseLog.register install_dir_ev tgt_dir
           );
   
         (* Really install files *)
-        BaseMessage.info 
-          (Printf.sprintf 
-             "Copying file '%s' to '%s'"
-             src_file
-             tgt_file);
+        info (f_ "Copying file '%s' to '%s'") src_file tgt_file;
         BaseFileUtil.cp src_file tgt_file;
         BaseLog.register install_file_ev tgt_file
     in
@@ -3146,86 +3888,48 @@ module InternalInstall = struct
     (* Install all datas *)
     let install_datas pkg = 
   
-      (* Install data for a single section *)
-      let install_data bs = 
-        List.iter
-          (fun (src, tgt_opt) ->
-             let real_srcs = 
-               let real_src = 
-                 Filename.concat bs.bs_path src
+      (* Install data into defined directory *)
+      let install_data srcdir lst tgtdir =
+        let tgtdir = 
+          var_expand tgtdir
+        in
+          List.iter
+            (fun (src, tgt_opt) ->
+               let real_srcs = 
+                 BaseFileUtil.glob 
+                   (Filename.concat srcdir src)
                in
-               (* Glob the src expression *)
-               let filename = 
-                 Filename.basename real_src
-               in
-                 if String.contains filename '*' then
-                   (
-                     let ext = 
-                       match OASISUtils.split '.' filename with 
-                         | [a; b] when a = "*" -> 
-                             "."^b
-                         | _ ->
-                             failwith 
-                               (Printf.sprintf 
-                                  "Invalid file wildcard in '%s'"
-                                  src)
-                     in
-                     let ext_len =
-                       String.length ext
-                     in
-                     let dirname =
-                       Filename.dirname real_src
-                     in
-                     let res =
-                       Array.fold_left
-                         (fun acc fn ->
-                            try 
-                              let fn_ext = 
-                                String.sub 
-                                  fn 
-                                  ((String.length fn) - ext_len) 
-                                  ext_len
-                              in
-                                if fn_ext = ext then
-                                  (Filename.concat dirname fn) :: acc
-                                else
-                                  acc
-                            with Invalid_argument "String.sub" ->
-                              acc)
-                         []
-                         (Sys.readdir dirname)
-                     in
-                       if res = [] then
-                         failwith 
-                           (Printf.sprintf 
-                              "Wildcard '%s' doesn't match any files"
-                              src);
-                       res
-                   )
-                 else
-                   (
-                     [real_src]
-                   )
-             in
-               List.iter 
-                 (fun fn -> 
-                    install_file 
-                      fn 
-                      (fun () -> 
-                         match tgt_opt with 
-                           | Some s -> var_expand s
-                           | None -> var_expand "$datarootdir/$pkg_name")) 
-                 real_srcs)
-               
-          bs.bs_data_files
-      in
+                 if real_srcs = [] then
+                   failwithf1
+                     (f_ "Wildcard '%s' doesn't match any files")
+                     src;
+                 List.iter 
+                   (fun fn -> 
+                      install_file 
+                        fn 
+                        (fun () -> 
+                           match tgt_opt with 
+                             | Some s -> var_expand s
+                             | None -> tgtdir))
+                   real_srcs)
+            lst
+      in       
   
-        (* Install datas for libraries and executables *)
         List.iter
           (function
              | Library (_, bs, _)
              | Executable (_, bs, _) ->
-                 install_data bs
+                 install_data
+                   bs.bs_path
+                   bs.bs_data_files
+                   (Filename.concat 
+                      (datarootdir ())
+                      pkg.name)
+             | Doc (_, doc) ->
+                 install_data
+                   Filename.current_dir_name
+                   doc.doc_data_files
+                   doc.doc_install_dir
              | _ ->
                  ())
           pkg.sections
@@ -3234,92 +3938,55 @@ module InternalInstall = struct
     (** Install all libraries *)
     let install_libs pkg =
   
-      let find_lib_file (cs, bs, lib) fn =
-        find_file
-          (fun rootdir -> [rootdir; bs.bs_path; fn])
-          rootdirs
-      in
-  
       let files_of_library acc data_lib = 
         let cs, bs, lib, lib_extra =
           !lib_hook data_lib
         in
-        let find_lib_file =
-          find_lib_file (cs, bs, lib)
-        in
-          (if var_choose bs.bs_install then
-             [
-               find_lib_file (cs.cs_name^".cma");
-             ]
-             :: 
-             (if is_native bs.bs_compiled_object then
-                (
-                  try 
-                    [
-                      find_lib_file (cs.cs_name^".cmxa");
-                      find_lib_file (cs.cs_name^(ext_lib ()));
-                    ]
-                  with Failure txt ->
-                    BaseMessage.warning 
-                      (Printf.sprintf
-                         "Cannot install native library %s: %s"
-                         cs.cs_name
-                         txt);
-                    []
-                )
-              else
-                []
-             )
-             ::
-             lib_extra
-             ::
-             (if bs.bs_c_sources <> [] then
-                [
-                  find_build_file (libfn bs.bs_path cs.cs_name);
-                ]
-              else
-                [])
-             ::
-             (* Some architecture doesn't allow shared library (Cygwin, AIX) *)
-             (if bs.bs_c_sources <> [] then
-                (try 
-                  [
-                    find_build_file (dllfn bs.bs_path cs.cs_name);
-                  ]
-                 with Failure txt ->
-                   if (os_type ()) <> "Cygwin" then
-                     BaseMessage.warning
-                       (Printf.sprintf
-                          "Cannot install C static library %s: %s"
-                          cs.cs_name
-                          txt);
-                   [])
-              else
-                [])
-             ::
-             (
-               let module_to_cmi modul =
-                 find_file 
-                    (fun (rootdir, fn) -> [rootdir; bs.bs_path; (fn^".cmi")])
-                    (rootdirs * (make_module modul))
-               in
-  
-               let module_to_header modul =
-                 assert(modul <> "");
-                 find_file 
-                    (fun ((rootdir, fn), ext) -> [rootdir; bs.bs_path; fn^ext])
-                    (rootdirs * (make_module modul) * [".mli"; ".ml"])
-               in
-                 List.fold_left
-                   (fun acc modul -> 
-                      module_to_cmi modul :: module_to_header modul :: acc)
-                   []
-                   lib.lib_modules
-             )
-             ::
-             acc
+          if var_choose bs.bs_install then
+            begin
+              let acc = 
+                (* Start with acc + lib_extra *)
+                List.rev_append lib_extra acc
+              in
+              let acc = 
+                (* Add uncompiled header from the source tree *)
+                let path = 
+                  BaseFilePath.of_unix bs.bs_path
+                in
+                  List.fold_left
+                    (fun acc modul ->
+                       try 
+                         List.find
+                           Sys.file_exists 
+                           (List.map
+                              (Filename.concat path)
+                              [String.uncapitalize modul^".mli";
+                               String.capitalize   modul^".mli";
+                               String.uncapitalize modul^".ml";
+                               String.capitalize   modul^".ml"])
+                         :: acc
+                       with Not_found ->
+                         begin
+                           warning 
+                             (f_ "Cannot find source header for module %s \
+                                  in library %s")
+                             modul cs.cs_name;
+                           acc
+                         end)
+                    acc
+                    lib.lib_modules
+              in
+               (* Get generated files *)
+               BaseBuilt.fold 
+                 BaseBuilt.BLib 
+                 cs.cs_name
+                 (fun acc fn -> fn :: acc)
+                 acc
+            end
            else
-             acc)
+            begin
+              acc
+            end
       in
   
       (* Install one group of library *)
@@ -3351,27 +4018,39 @@ module InternalInstall = struct
   
         (* All files to install for this library *)
         let files =
-          List.flatten (install_group_lib_aux [] grp)
+          install_group_lib_aux [] grp
         in
   
           (* Really install, if there is something to install *)
           if files = [] then 
             begin
-              BaseMessage.info 
-                (Printf.sprintf 
-                   "Nothing to install for findlib library '%s'"
-                   findlib_name)
+              warning
+                (f_ "Nothing to install for findlib library '%s'")
+                findlib_name
             end
           else
             begin
               let meta = 
-                find_lib_file root_lib "META"
+                (* Search META file *)
+                let (_, bs, _) = 
+                  root_lib
+                in
+                let res = 
+                  Filename.concat bs.bs_path "META"
+                in
+                  if not (Sys.file_exists res) then
+                    failwithf2
+                      (f_ "Cannot find file '%s' for findlib library %s")
+                      res
+                      findlib_name;
+                  res
               in
-                BaseMessage.info 
-                  (Printf.sprintf
-                     "Installing findlib library '%s'"
-                     findlib_name);
-                BaseExec.run (ocamlfind ()) ("install" :: findlib_name :: meta :: files);
+                info 
+                  (f_ "Installing findlib library '%s'")
+                  findlib_name;
+                BaseExec.run 
+                  (ocamlfind ()) 
+                  ("install" :: findlib_name :: meta :: files);
                 BaseLog.register install_findlib_ev findlib_name 
             end
       in
@@ -3384,29 +4063,33 @@ module InternalInstall = struct
   
     let install_execs pkg = 
       let install_exec data_exec =
-        let (cs, bs, exec) as data_exec =
+        let (cs, bs, exec) =
           !exec_hook data_exec
         in
           if var_choose bs.bs_install then
-            (
-                install_file
-                  (find_build_file
-                     ((OASISExecutable.exec_is data_exec)^(suffix_program ())))
-                  bindir;
-  
-                if bs.bs_c_sources <> [] && 
-                   not exec.exec_custom && 
-                   (* TODO: move is_native to OASISBuildSection *)
-                   not (is_native bs.bs_compiled_object) then
-                  (
-                    install_file
-                      (find_build_file
-                         (dllfn (OASISExecutable.exec_main_path data_exec) cs.cs_name))
-                      libdir
-                  )
-                else
+            begin
+              let exec_libdir () =
+                Filename.concat 
+                  (libdir ())
+                  pkg.name
+              in
+                BaseBuilt.fold
+                  BaseBuilt.BExec
+                  cs.cs_name
+                  (fun () fn ->
+                     install_file
+                       fn
+                       bindir)
+                  ();
+                BaseBuilt.fold
+                  BaseBuilt.BExecLib
+                  cs.cs_name
+                  (fun () fn ->
+                     install_file
+                       fn
+                       exec_libdir)
                   ()
-            )
+            end
       in
         List.iter
           (function
@@ -3416,9 +4099,39 @@ module InternalInstall = struct
                  ())
           pkg.sections
     in
+  
+    let install_docs pkg = 
+      let install_doc data =
+        let (cs, doc) =
+          !doc_hook data
+        in
+          if var_choose doc.doc_install then
+            begin
+              let tgt_dir =
+                var_expand doc.doc_install_dir
+              in
+                BaseBuilt.fold
+                  BaseBuilt.BDoc
+                  cs.cs_name
+                  (fun () fn ->
+                     install_file 
+                       fn 
+                       (fun () -> tgt_dir))
+                ()
+            end
+      in
+        List.iter
+          (function
+             | Doc (cs, doc) ->
+                 install_doc (cs, doc)
+             | _ ->
+                 ())
+          pkg.sections
+    in
     
-      install_libs pkg;
+      install_libs  pkg;
       install_execs pkg;
+      install_docs  pkg;
       install_datas pkg
   
   (* Uninstall already installed data *)
@@ -3426,53 +4139,45 @@ module InternalInstall = struct
     List.iter 
       (fun (ev, data) ->
          if ev = install_file_ev then
-           (
+           begin
              if Sys.file_exists data then
-               (
-                 BaseMessage.info
-                   (Printf.sprintf 
-                      "Removing file '%s'"
-                      data);
+               begin
+                 info
+                   (f_ "Removing file '%s'")
+                   data;
                  Sys.remove data
-               )
-           )
+               end
+           end 
          else if ev = install_dir_ev then
-           (
+           begin
              if Sys.file_exists data && Sys.is_directory data then
-               (
+               begin
                  if Sys.readdir data = [||] then
-                   (
-                     BaseMessage.info
-                       (Printf.sprintf 
-                          "Removing directory '%s'"
-                          data);
+                   begin
+                     info
+                       (f_ "Removing directory '%s'")
+                       data;
                      BaseFileUtil.rmdir data
-                   )
+                   end
                  else
-                   (
-                     BaseMessage.warning 
-                       (Printf.sprintf
-                          "Directory '%s' is not empty (%s)"
-                          data
-                          (String.concat 
-                             ", " 
-                             (Array.to_list 
-                                (Sys.readdir data))))
-                   )
-               )
-           )
+                   begin
+                     warning 
+                       (f_ "Directory '%s' is not empty (%s)")
+                       data
+                       (String.concat 
+                          ", " 
+                          (Array.to_list 
+                             (Sys.readdir data)))
+                   end
+               end
+           end
          else if ev = install_findlib_ev then
-           (
-             BaseMessage.info
-               (Printf.sprintf
-                  "Removing findlib library '%s'"
-                  data);
+           begin
+             info (f_ "Removing findlib library '%s'") data;
              BaseExec.run (ocamlfind ()) ["remove"; data]
-           )
+           end
          else
-           (
-             failwith (Printf.sprintf "Unknown log event '%s'" ev)
-           );
+           failwithf1 (f_ "Unknown log event '%s'") ev;
          BaseLog.unregister ev data)
       (* We process event in reverse order *)
       (List.rev 
@@ -3484,195 +4189,325 @@ module InternalInstall = struct
 end
 
 
-# 3487 "setup.ml"
+# 4192 "setup.ml"
+module OCamlbuildCommon = struct
+# 0 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/OCamlbuildCommon.ml"
+  
+  (** Functions common to OCamlbuild build and doc plugin
+    *)
+  
+  open BaseEnv
+  open BaseStandardVar
+  
+  let ocamlbuild_clean_ev =
+    "ocamlbuild-clean"
+  
+  (** Fix special arguments depending on environment *)
+  let fix_args args extra_argv =
+    List.flatten
+      [
+        if (os_type ()) = "Win32" then
+          [
+            "-classic-display"; 
+            "-no-log"; 
+            "-install-lib-dir"; 
+            (Filename.concat (standard_library ()) "ocamlbuild")
+          ] 
+        else
+          [];
+    
+        if not (bool_of_string (is_native ())) || (os_type ()) = "Win32" then
+          [
+            "-byte-plugin" 
+          ]
+        else
+          [];
+        args;
+        Array.to_list extra_argv;
+      ]
+  
+  (** Run 'ocamlbuild -clean' if not already done *)
+  let run_clean extra_argv =
+    let extra_cli =
+      String.concat " " (Array.to_list extra_argv)
+    in
+      (* Run if never called with these args *)
+      if not (BaseLog.exists ocamlbuild_clean_ev extra_cli) then
+        begin
+          BaseExec.run (ocamlbuild ()) (fix_args ["-clean"] extra_argv);
+          BaseLog.register ocamlbuild_clean_ev extra_cli
+        end
+  
+  (** Run ocamlbuild, unregister all clean events *)
+  let run_ocamlbuild args extra_argv =
+    BaseExec.run (ocamlbuild ()) (fix_args args extra_argv);
+    (* Remove any clean event, we must run it again *)
+    List.iter
+      (fun (e, d) -> BaseLog.unregister e d)
+      (BaseLog.filter [ocamlbuild_clean_ev])
+  
+  (** Determine real build directory *)
+  let build_dir extra_argv =
+    let rec search_args dir =
+      function
+        | "-build-dir" :: dir :: tl ->
+            search_args dir tl
+        | _ :: tl ->
+            search_args dir tl
+        | [] -> 
+            dir
+    in
+      search_args "_build" (fix_args [] extra_argv)
+end
+
 module OCamlbuildPlugin = struct
-# 0 "/home/gildor/programmation/oasis/src/ocamlbuild/OCamlbuildPlugin.ml"
+# 0 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/OCamlbuildPlugin.ml"
   
   (** Build using ocamlbuild  
       @author Sylvain Le Gall
     *)
   
   open OASISTypes
+  open OASISGettext
+  open OASISUtils
   open BaseEnv
   open BaseStandardVar
   
   type target =
-    | Std of string
-    | CLibrary  of string * string
-    | Rename of string * string
+    | Std of string 
+    | StdRename of string * string
   
   let cond_targets_hook =
     ref (fun lst -> lst)
   
   let build pkg argv =
-    (* Fix special arguments depending on environment *)
-    let env_args =
-      List.flatten
-        [
-          if (os_type ()) = "Win32" then
-            [
-              "-classic-display"; 
-              "-no-log"; 
-              "-install-lib-dir"; 
-              (Filename.concat (standard_library ()) "ocamlbuild")
-            ] 
-          else
-            [];
-      
-          if (ocamlbest ()) = "byte" || (os_type ()) = "Win32" then
-            [
-              "-byte-plugin" 
-            ]
-          else
-            [];
-        ]
-    in
   
-    let ocamlbuild_run rtargets = 
-      let args = 
-        rtargets @ (Array.to_list argv)
-      in
-        BaseExec.run (ocamlbuild ()) (env_args @ args)
-    in
-  
+    (* Return the filename in build directory *)
     let in_build_dir fn =
-      Filename.concat "_build" fn
+      Filename.concat 
+        (OCamlbuildCommon.build_dir argv) 
+        fn
+    in
+  
+    (* Return the unix filename in host build directory *)
+    let in_build_dir_of_unix fn =
+      in_build_dir (BaseFilePath.of_unix fn)
     in
   
     let cond_targets =
-      List.flatten 
-        [
-          List.fold_left
-            (fun acc ->
-               function 
-                 | Library (cs, bs, lib) ->
-                     if var_choose bs.bs_build then
-                       begin
-                         let acc =
-                           (* Compute what libraries should be built *)
-                           let target ext =
-                             Std (Filename.concat bs.bs_path (cs.cs_name^ext))
-                           in
-                           let byte, native =
-                             target ".cma", target ".cmxa"
-                           in
-                             match bs.bs_compiled_object, ocamlbest () with 
-                               | Native, _ 
-                               | Best, "native" ->
-                                   byte :: native :: acc
-                               | Byte, _
-                               | Best, "byte" ->
-                                   byte :: acc
-                               | Best, ocamlbest ->
-                                   failwith 
-                                     (Printf.sprintf 
-                                        "Unknown ocamlbest: '%s'"
-                                        ocamlbest)
-                         in
+      List.fold_left
+        (fun acc ->
+           function 
+             | Library (cs, bs, lib) when var_choose bs.bs_build ->
+                 begin
+                   let evs, unix_files =
+                     BaseBuilt.of_library 
+                       in_build_dir_of_unix
+                       (cs, bs, lib)
+                   in
   
-                         let acc = 
-                           (* Add C library to be built *)
-                           if bs.bs_c_sources <> [] then
-                             CLibrary (bs.bs_path, cs.cs_name) :: acc
-                           else
-                             acc
-                         in
+                   let ends_with nd fn =
+                     let nd_len =
+                       String.length nd
+                     in
+                       (String.length fn >= nd_len)
+                       &&
+                       (String.sub 
+                          fn
+                          (String.length fn - nd_len)
+                          nd_len) = nd
+                   in
+  
+                   let tgts =
+                     List.filter
+                       (fun fn ->
+                          ends_with ".cma" fn ||
+                          ends_with ".cmxa" fn ||
+                          ends_with (ext_lib ()) fn ||
+                          ends_with (ext_dll ()) fn)
+                       unix_files
+                   in
+  
+                     match tgts with 
+                       | hd :: tl ->
+                           (evs, Std hd)
+                           :: 
+                           (List.map (fun tgt -> [], Std tgt) tl)
+                           @
                            acc
-                       end
-                     else
-                       acc
-                 | Executable (cs, bs, exec) ->
-                     if var_choose bs.bs_build then
-                       begin
-                         let target ext =
-                           let src = 
-                             (Filename.concat
-                                bs.bs_path
-                                (Filename.chop_extension 
-                                   exec.exec_main_is))^ext
-                           in
-                           let exec_is =
-                             OASISExecutable.exec_is (cs, bs, exec)
-                           in
-                             if src = exec_is then
-                               Std src
-                             else
-                               Rename (src, exec_is)
-                         in
-                         let byte, native = 
-                           target ".byte", target ".native" 
-                         in
-                           match bs.bs_compiled_object, ocamlbest () with
-                             | Byte, _
-                             | Best, "byte" ->
-                                 byte :: acc
-                             | Native, _
-                             | Best, "native" ->
-                                 native :: acc
-                             | Best, ocamlbest ->
-                                 failwith 
-                                   (Printf.sprintf 
-                                      "Unknown ocamlbest: '%s'"
-                                      ocamlbest)
-                       end
-                     else
-                       acc
-                 | Test _ | SrcRepo _ | Flag _ ->
-                     acc)
-            []
-            (* Keep the pkg.sections ordered *)
-            (List.rev pkg.sections);
-        ]
+                       | [] ->
+                           failwithf2
+                             (f_ "No possible ocamlbuild targets \
+                                  in generated files %s for library %s")
+                             (String.concat (s_ ", " ) tgts)
+                             cs.cs_name
+                 end
+  
+             | Executable (cs, bs, exec) when var_choose bs.bs_build ->
+                 begin
+                   let evs, unix_exec_is, unix_dll_opt =
+                     BaseBuilt.of_executable 
+                       in_build_dir_of_unix
+                       (cs, bs, exec)
+                   in
+  
+                   let host_exec_is = 
+                     in_build_dir_of_unix unix_exec_is
+                   in
+  
+                   let target ext =
+                     let unix_tgt = 
+                       (BaseFilePath.Unix.concat
+                          bs.bs_path
+                          (BaseFilePath.Unix.chop_extension 
+                             exec.exec_main_is))^ext
+                     in
+  
+                       evs,
+                       (if unix_tgt = unix_exec_is then
+                          Std unix_tgt
+                        else
+                          StdRename (unix_tgt, host_exec_is))
+                   in
+  
+                   (* Add executable *)
+                   let acc =
+                     match bs.bs_compiled_object with
+                       | Native ->
+                           (target ".native") :: acc
+                       | Best when bool_of_string (is_native ()) ->
+                           (target ".native") :: acc
+                       | Byte
+                       | Best ->
+                           (target ".byte") :: acc
+                   in
+                     acc
+                 end
+  
+             | Library _ | Executable _ | Test _ 
+             | SrcRepo _ | Flag _ | Doc _ ->
+                 acc)
+        []
+        (* Keep the pkg.sections ordered *)
+        (List.rev pkg.sections);
+    in
+  
+    (* Check and register built files *)
+    let check_and_register (bt, bnm, lst) = 
+      List.iter
+        (fun fn ->
+           if not (Sys.file_exists fn) then
+             failwithf1
+               (f_ "Expected built file '%s' doesn't exist")
+               fn)
+        lst;
+        (BaseBuilt.register bt bnm lst) 
+    in
+  
+    (* Run a list of target + post process *)
+    let run_ocamlbuild rtargets = 
+      OCamlbuildCommon.run_ocamlbuild 
+        (List.rev_map snd rtargets)
+        argv;
+      List.iter
+        check_and_register
+        (List.flatten (List.rev_map fst rtargets))
     in
   
     let last_rtargets =
       List.fold_left
-        (fun acc tgt ->
+        (fun acc (built, tgt) ->
            match tgt with 
              | Std nm -> 
-                 nm :: acc
-             | CLibrary (dir, nm) ->
-                 (dir^"/lib"^nm^(ext_lib ())) 
-                 ::
-                 (dir^"/dll"^nm^(ext_dll ()))
-                 ::
-                 acc
-             | Rename (src, tgt) ->
-                 ocamlbuild_run (List.rev (src :: acc));
+                 (built, nm) :: acc
+             | StdRename (src, tgt) ->
+                 (* We run with a fake list for event registering *)
+                 run_ocamlbuild (([], src) :: acc);
+                 (* And then copy and register *)
                  BaseFileUtil.cp 
-                   (in_build_dir src) 
-                   (in_build_dir tgt);
+                   (in_build_dir_of_unix src)
+                   tgt;
+                 List.iter check_and_register built;
                  [])
         []
         (!cond_targets_hook cond_targets)
     in
       if last_rtargets <> [] then
-        ocamlbuild_run (List.rev last_rtargets)
+        run_ocamlbuild last_rtargets
   
   let clean pkg extra_args  = 
-    (* TODO use ocamlbuild *)
-    BaseExec.run "ocamlbuild" ("-clean" :: (Array.to_list extra_args))
+    OCamlbuildCommon.run_clean extra_args;
+    BaseBuilt.clean_all pkg
+  
+end
+
+module OCamlbuildDocPlugin = struct
+# 0 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/OCamlbuildDocPlugin.ml"
+  
+  (* Create documentation using ocamlbuild .odocl files
+     @author Sylvain Le Gall
+   *)
+  
+  open OASISTypes
+  open OASISGettext
+  open OASISMessage
+  open BaseStandardVar
+  
+  
+  
+  type t =
+      {
+        path:    dirname;
+        modules: string list;
+      } 
+  
+  let doc_build t pkg (cs, doc) argv =
+    let index_html =
+      t.path^"/"^cs.cs_name^".docdir/index.html"
+    in
+    let tgt_dir =
+      BaseFilePath.make
+        [
+          OCamlbuildCommon.build_dir argv;
+          BaseFilePath.of_unix t.path;
+          cs.cs_name^".docdir";
+        ]
+    in
+      OCamlbuildCommon.run_ocamlbuild [index_html] argv;
+      List.iter
+        (fun glb ->
+           BaseBuilt.register
+             BaseBuilt.BDoc
+             cs.cs_name
+             (BaseFileUtil.glob 
+                (Filename.concat tgt_dir glb)))
+        ["*.html"; "*.css"]
+  
+  let doc_clean t pkg (cs, doc) argv =
+    OCamlbuildCommon.run_clean argv;
+    BaseBuilt.unregister BaseBuilt.BDoc cs.cs_name
   
 end
 
 
-# 3659 "setup.ml"
+# 4493 "setup.ml"
 module CustomPlugin = struct
-# 0 "/home/gildor/programmation/oasis/src/custom/CustomPlugin.ml"
+# 0 "/home/gildor/programmation/oasis/src/plugins/custom/CustomPlugin.ml"
   
   (** Generate custom configure/build/doc/test/install system
       @author
     *)
   
   open BaseEnv
+  open OASISTypes
   
   
   
   type t =
       {
-        cmd_main:     string * (string list);
-        cmd_clean:     (string * (string list)) option;
-        cmd_distclean: (string * (string list)) option;
+        cmd_main:      command_line conditional;
+        cmd_clean:     (command_line option) conditional;
+        cmd_distclean: (command_line option) conditional;
       } 
   
   let run cmd args extra_args =
@@ -3682,22 +4517,68 @@ module CustomPlugin = struct
          var_expand
          (args @ (Array.to_list extra_args)))
   
-  let main {cmd_main = (cmd, args)} _ extra_args =
-    run cmd args extra_args 
+  let main t _ extra_args =
+    let cmd, args =
+      var_choose t.cmd_main
+    in
+      run cmd args extra_args 
   
   let clean t pkg extra_args =
-    match t with
-      | {cmd_clean = Some (cmd, args)} ->
+    match var_choose t.cmd_clean with
+      | Some (cmd, args) ->
           run cmd args extra_args
       | _ ->
           ()
   
   let distclean t pkg extra_args =
-    match t with
-      | {cmd_distclean = Some (cmd, args)} ->
+    match var_choose t.cmd_distclean with
+      | Some (cmd, args) ->
           run cmd args extra_args
       | _ ->
           ()
+  
+  module Build =
+  struct 
+    let main t pkg extra_args =
+      main t pkg extra_args;
+      List.fold_left
+        (fun () sct ->
+           let evs =
+             match sct with 
+               | Library (cs, bs, lib) when var_choose bs.bs_build ->
+                   begin
+                     let evs, _ = 
+                       BaseBuilt.of_library 
+                         BaseFilePath.of_unix
+                         (cs, bs, lib) 
+                     in
+                       evs
+                   end
+               | Executable (cs, bs, exec) when var_choose bs.bs_build ->
+                   begin
+                     let evs, _, _ =
+                       BaseBuilt.of_executable
+                         BaseFilePath.of_unix
+                         (cs, bs, exec)
+                     in
+                       evs
+                   end
+               | _ ->
+                   []
+           in
+             List.iter
+               (fun (bt, bnm, lst) -> BaseBuilt.register bt bnm lst)
+               evs)
+        ()
+        pkg.sections
+  
+    let clean t pkg extra_args =
+      clean t pkg extra_args;
+      BaseBuilt.clean_all pkg
+  
+    let distclean t pkg extra_args =
+      distclean t pkg extra_args
+  end
   
   module Test =
   struct
@@ -3717,60 +4598,73 @@ module CustomPlugin = struct
   
   module Doc =
   struct
-    let main t pkg (cs, ()) extra_args =
+    let main t pkg (cs, _) extra_args =
       main t pkg extra_args
   
-    let clean t pkg (cs, ()) extra_args =
+    let clean t pkg (cs, _) extra_args =
       clean t pkg extra_args
   
-    let distclean t pkg (cs, ()) extra_args =
+    let distclean t pkg (cs, _) extra_args =
       distclean t pkg extra_args
   end
   
 end
 
 
-# 3733 "setup.ml"
+# 4614 "setup.ml"
 open OASISTypes;;
 let setup () =
   BaseSetup.setup
     {
-       BaseSetup.configure = InternalConfigure.configure;
+       BaseSetup.configure = InternalConfigurePlugin.configure;
        build = OCamlbuildPlugin.build;
        test =
          [
             ("main",
               CustomPlugin.Test.main
                 {
-                   CustomPlugin.cmd_main = ("_build/tests/test", []);
-                   cmd_clean = None;
-                   cmd_distclean = None;
+                   CustomPlugin.cmd_main =
+                     [(EBool true, ("$(utoh \"_build/tests/test\")", []))];
+                   cmd_clean = [(EBool true, None)];
+                   cmd_distclean = [(EBool true, None)];
                    })
          ];
-       doc = [];
-       install = InternalInstall.install;
-       uninstall = InternalInstall.uninstall;
+       doc =
+         [
+            ("odn",
+              OCamlbuildDocPlugin.doc_build
+                {OCamlbuildDocPlugin.path = "src"; modules = ["ODN"]; })
+         ];
+       install = InternalInstallPlugin.install;
+       uninstall = InternalInstallPlugin.uninstall;
        clean = [OCamlbuildPlugin.clean];
        clean_test =
          [
             ("main",
               CustomPlugin.Test.clean
                 {
-                   CustomPlugin.cmd_main = ("_build/tests/test", []);
-                   cmd_clean = None;
-                   cmd_distclean = None;
+                   CustomPlugin.cmd_main =
+                     [(EBool true, ("$(utoh \"_build/tests/test\")", []))];
+                   cmd_clean = [(EBool true, None)];
+                   cmd_distclean = [(EBool true, None)];
                    })
          ];
-       clean_doc = [];
+       clean_doc =
+         [
+            ("odn",
+              OCamlbuildDocPlugin.doc_clean
+                {OCamlbuildDocPlugin.path = "src"; modules = ["ODN"]; })
+         ];
        distclean = [];
        distclean_test =
          [
             ("main",
               CustomPlugin.Test.distclean
                 {
-                   CustomPlugin.cmd_main = ("_build/tests/test", []);
-                   cmd_clean = None;
-                   cmd_distclean = None;
+                   CustomPlugin.cmd_main =
+                     [(EBool true, ("$(utoh \"_build/tests/test\")", []))];
+                   cmd_clean = [(EBool true, None)];
+                   cmd_distclean = [(EBool true, None)];
                    })
          ];
        distclean_doc = [];
@@ -3791,10 +4685,13 @@ let setup () =
             synopsis = "Store data using OCaml notation";
             description = None;
             categories = [];
-            conf_type = "internal";
-            build_type = "ocamlbuild";
-            install_type = "internal";
-            files_ab = [];
+            conf_type =
+              ("internal", Some (VInt (0, VInt (1, VInt (0, VEnd)))));
+            build_type =
+              ("ocamlbuild", Some (VInt (0, VInt (1, VInt (0, VEnd)))));
+            install_type =
+              ("internal", Some (VInt (0, VInt (1, VInt (0, VEnd)))));
+            files_ab = ["tests/TestConf.ml.ab"];
             sections =
               [
                  Library
@@ -3808,6 +4705,12 @@ let setup () =
                         bs_build_tools = [ExternalTool "ocamlbuild"];
                         bs_c_sources = [];
                         bs_data_files = [];
+                        bs_ccopt = [(EBool true, [])];
+                        bs_cclib = [(EBool true, [])];
+                        bs_dlllib = [(EBool true, [])];
+                        bs_dllpath = [(EBool true, [])];
+                        bs_byteopt = [(EBool true, [])];
+                        bs_nativeopt = [(EBool true, [])];
                         },
                      {
                         lib_modules = ["ODN"];
@@ -3836,6 +4739,12 @@ let setup () =
                         bs_build_tools = [ExternalTool "ocamlbuild"];
                         bs_c_sources = [];
                         bs_data_files = [];
+                        bs_ccopt = [(EBool true, [])];
+                        bs_cclib = [(EBool true, [])];
+                        bs_dlllib = [(EBool true, [])];
+                        bs_dllpath = [(EBool true, [])];
+                        bs_byteopt = [(EBool true, [])];
+                        bs_nativeopt = [(EBool true, [])];
                         },
                      {
                         lib_modules = ["Pa_noodn"];
@@ -3846,8 +4755,12 @@ let setup () =
                  Test
                    ({cs_name = "main"; cs_data = PropList.Data.create (); },
                      {
-                        test_type = "custom";
-                        test_command = ("_build/tests/test", []);
+                        test_type = ("custom", None);
+                        test_command =
+                          [
+                             (EBool true,
+                               ("$(utoh \"_build/tests/test\")", []))
+                          ];
                         test_working_directory = None;
                         test_run = [(EBool true, true)];
                         test_build_tools = [];
@@ -3862,13 +4775,23 @@ let setup () =
                         bs_build_depends =
                           [
                              FindlibPackage ("oUnit", None);
-                             FindlibPackage ("fileutils", None);
+                             FindlibPackage
+                               ("fileutils",
+                                 Some
+                                   (VGreaterEqual
+                                      (VInt (0, VInt (4, VInt (0, VEnd))))));
                              InternalLibrary "odn";
                              FindlibPackage ("str", None)
                           ];
                         bs_build_tools = [ExternalTool "ocamlbuild"];
                         bs_c_sources = [];
                         bs_data_files = [];
+                        bs_ccopt = [(EBool true, [])];
+                        bs_cclib = [(EBool true, [])];
+                        bs_dlllib = [(EBool true, [])];
+                        bs_dllpath = [(EBool true, [])];
+                        bs_byteopt = [(EBool true, [])];
+                        bs_nativeopt = [(EBool true, [])];
                         },
                      {exec_custom = false; exec_main_is = "test.ml"; });
                  Library
@@ -3891,18 +4814,43 @@ let setup () =
                         bs_build_tools = [ExternalTool "ocamlbuild"];
                         bs_c_sources = [];
                         bs_data_files = [];
+                        bs_ccopt = [(EBool true, [])];
+                        bs_cclib = [(EBool true, [])];
+                        bs_dlllib = [(EBool true, [])];
+                        bs_dllpath = [(EBool true, [])];
+                        bs_byteopt = [(EBool true, [])];
+                        bs_nativeopt = [(EBool true, [])];
                         },
                      {
                         lib_modules = ["Pa_odn"];
                         lib_findlib_parent = Some "odn";
                         lib_findlib_name = Some "syntax";
                         lib_findlib_containers = ["with"];
+                        });
+                 Doc
+                   ({cs_name = "odn"; cs_data = PropList.Data.create (); },
+                     {
+                        doc_type =
+                          ("ocamlbuild",
+                            Some (VInt (0, VInt (1, VInt (0, VEnd)))));
+                        doc_build = [(EBool true, true)];
+                        doc_install = [(EBool true, true)];
+                        doc_install_dir = "$htmldir/odn";
+                        doc_data_files = [];
+                        doc_build_tools =
+                          [ExternalTool "ocamldoc"; ExternalTool "ocamlbuild"
+                          ];
                         })
               ];
-            plugins = ["StdFiles"; "DevFiles"; "META"];
+            plugins =
+              [
+                 ("StdFiles", Some (VInt (0, VInt (1, VInt (0, VEnd)))));
+                 ("DevFiles", Some (VInt (0, VInt (1, VInt (0, VEnd)))));
+                 ("META", Some (VInt (0, VInt (1, VInt (0, VEnd)))))
+              ];
             schema_data = PropList.Data.create ();
             };
        }
   ;;
 (* OASIS_STOP *)
-setup ();;
+let () = setup ();;

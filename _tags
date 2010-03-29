@@ -1,20 +1,20 @@
 # OASIS_START
-# DO NOT EDIT (digest: 418a57c56f3f1dee080d35689219f1ab)
+# DO NOT EDIT (digest: 96f5d7f1ac062c4fcc6451d35c36c338)
 # Library odn
 # Library pa_noodn
 # Executable test
-<tests/*.ml>: pkg_fileutils
-<tests/*.ml>: pkg_oUnit
-<tests/*.ml>: pkg_str
-<tests/*.ml>: use_odn
-<tests/test.byte>: pkg_fileutils
-<tests/test.byte>: pkg_oUnit
-<tests/test.byte>: pkg_str
 <tests/test.byte>: use_odn
+<tests/test.byte>: pkg_str
+<tests/test.byte>: pkg_oUnit
+<tests/test.byte>: pkg_fileutils
+<tests/*.ml>: use_odn
+<tests/*.ml>: pkg_str
+<tests/*.ml>: pkg_oUnit
+<tests/*.ml>: pkg_fileutils
 # Library pa_odn
-<src/*.ml>: pkg_camlp4.lib
-<src/*.ml>: pkg_camlp4.quotations.o
 <src/*.ml>: pkg_type-conv
+<src/*.ml>: pkg_camlp4.quotations.o
+<src/*.ml>: pkg_camlp4.lib
 # OASIS_STOP
 <src/pa_odn.ml>: syntax_camlp4o
 <src/pa_noodn.ml>: syntax_camlp4o
