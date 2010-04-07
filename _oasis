@@ -5,6 +5,7 @@ Version:      0.0.1
 Synopsis:     Store data using OCaml notation
 Authors:      Sylvain Le Gall
 License:      LGPL-2.1 with OCaml linking exception
+LicenseFile:  COPYING.txt
 Plugins:      StdFiles (0.1.0), DevFiles (0.1.0), META (0.1.0)
 FilesAB:      tests/TestConf.ml.ab
 

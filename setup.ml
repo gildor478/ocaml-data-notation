@@ -20,7 +20,7 @@
 (********************************************************************************)
 
 (* OASIS_START *)
-(* DO NOT EDIT (digest: dfabbc5526934e7d2e17b6e5a843e216) *)
+(* DO NOT EDIT (digest: f98aa25afa80393f27e83c9d3835c91b) *)
 module OASISGettext = struct
 # 0 "/home/gildor/programmation/oasis/src/oasis/OASISGettext.ml"
   
@@ -5159,7 +5159,7 @@ let setup () =
               LicenseWithException
                 (LicenseWithVersion (LGPL, VInt (2, VInt (1, VEnd))),
                   OCamlLinkingException);
-            license_file = None;
+            license_file = Some "COPYING.txt";
             copyrights = [];
             maintainers = [];
             authors = ["Sylvain Le Gall"];
