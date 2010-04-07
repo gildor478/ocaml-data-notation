@@ -2,17 +2,17 @@
 test: build
 
 # OASIS_START
-# DO NOT EDIT (digest: b73a05ebea91f832e18c42666ba6226e)
+# DO NOT EDIT (digest: c670bbc06ab2e6f432b790475d6ad412)
 
 SETUP = ocaml setup.ml
 
 build: setup.data
 	$(SETUP) -build $(BUILDFLAGS)
 
-doc: setup.data
+doc: setup.data build
 	$(SETUP) -doc $(DOCFLAGS)
 
-test: setup.data
+test: setup.data build
 	$(SETUP) -test $(TESTFLAGS)
 
 install: setup.data

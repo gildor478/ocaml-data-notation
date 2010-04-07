@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 96f5d7f1ac062c4fcc6451d35c36c338)
+# DO NOT EDIT (digest: 1478ef6d04ff158f5a6b091275cb2e38)
 # Library odn
 # Library pa_noodn
 # Executable test
@@ -12,6 +12,7 @@
 <tests/*.ml>: pkg_oUnit
 <tests/*.ml>: pkg_fileutils
 # Library pa_odn
+"src": include
 <src/*.ml>: pkg_type-conv
 <src/*.ml>: pkg_camlp4.quotations.o
 <src/*.ml>: pkg_camlp4.lib

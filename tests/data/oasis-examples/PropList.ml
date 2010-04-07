@@ -3,6 +3,8 @@
     @author Sylvain Le Gall
   *)
 
+TYPE_CONV_PATH "PropList";;
+
 (*open CommonGettext;;*)
 let s_ i = i
 let f_ i = i^^""
