@@ -59,6 +59,10 @@ headache:
 	  -false -o -type f \
 	  | xargs headache -h _header -c _headache.config
 
+.PHONY: headache
+
+# Source distribution
+
 dist: setup.data
 	if ! [ "$$(darcs diff | wc -l)" = 0 ]; then \
 	  echo E: Uncommited changes >&2 ; exit 1; \
@@ -76,3 +80,4 @@ dist-step2:
 	fi 
 	gpg -s -a -b "$(pkg_name)-$(pkg_version).tar.gz"
 
+.PHONY: dist dist-step2
