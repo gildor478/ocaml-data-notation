@@ -84,11 +84,11 @@ and odn_of_type _loc =
             | [] ->
                 assert false
         end
-    | <:ctyp<$tp$ option>> ->
+    | <:ctyp<($tp$ option)>> ->
         <:expr<ODN.of_option $odn_of_type _loc tp$>>
-    | <:ctyp<$tp$ list>> ->
+    | <:ctyp<($tp$ list)>> ->
         <:expr<ODN.of_list $odn_of_type _loc tp$>> 
-    | <:ctyp<$tp1$ $tp2$>> ->
+    | <:ctyp<($tp1$ $tp2$)>> ->
         <:expr<$odn_of_type _loc tp2$ $odn_of_type _loc tp1$>>
     | <:ctyp<'$parm$>> ->
         <:expr<$id:odn_id_name _loc parm []$>>
@@ -102,6 +102,53 @@ let odn_of_alias _loc ctp =
   <:expr<$odn_of_type _loc ctp$>>
 ;;
 
+let dbug_ty ty = 
+(* DBUG code to find missing constructor in pattern match
+ * Compatible with OCaml 3.12.0
+  let str = 
+    match ty with 
+      | TyNil _       -> "TyNil"
+      | TyAli _       -> "TyAli"
+      | TyAny _       -> "TyAny"
+      | TyApp _       -> "TyApp"
+      | TyArr _       -> "TyArr"
+      | TyCls _       -> "TyCls"
+      | TyLab _       -> "TyLab"
+      | TyId _        -> "TyId"
+      | TyMan _       -> "TyMan"
+      | TyDcl _       -> "TyDcl"
+      | TyObj _       -> "TyObj"
+      | TyOlb _       -> "TyOlb"
+      | TyPol _       -> "TyPol"
+      | TyQuo _       -> "TyQuo"
+      | TyQuP _       -> "TyQuP"
+      | TyQuM _       -> "TyQuM"
+      | TyVrn _       -> "TyVrn"
+      | TyRec _       -> "TyRec"
+      | TyCol _       -> "TyCol"
+      | TySem _       -> "TySem"
+      | TyCom _       -> "TyCom"
+      | TySum _       -> "TySum"
+      | TyOf _        -> "TyOf"
+      | TyAnd _       -> "TyAnd"
+      | TyOr _        -> "TyOr"
+      | TyPrv _       -> "TyPrv"
+      | TyMut _       -> "TyMut"
+      | TyTup _       -> "TyTup"
+      | TySta _       -> "TySta"
+      | TyVrnEq _     -> "TyVrnEq"
+      | TyVrnSup _    -> "TyVrnSup"
+      | TyVrnInf _    -> "TyVrnInf"
+      | TyVrnInfSup _ -> "TyVrnInfSup"
+      | TyAmp _       -> "TyAmp"
+      | TyOfAmp _     -> "TyOfAmp"
+      | TyPkg _       -> "TyPkg"
+      | TyAnt _       -> "TyAnt"
+  in
+    prerr_endline str
+ *)
+    ()
+
 let odn_of_sum _loc ctp = 
   let sum_def =
     let sum_name nm = 
@@ -109,11 +156,11 @@ let odn_of_sum _loc ctp =
     in
     let rec sum_fold _loc =
       function
-        | <:ctyp<$tp1$ | $tp2$>> ->
+        | TyOr (_loc, tp1, tp2) ->
             <:match_case<$sum_fold _loc tp1$ | $sum_fold _loc tp2$>>
-        | <:ctyp<$uid:cnstr$>> ->
+        | TyId (_loc, IdUid(_, cnstr)) ->
             <:match_case<$uid:cnstr$ -> ODN.VRT($str:sum_name cnstr$,[])>>
-        | <:ctyp<$uid:cnstr$ of $tps$>> ->
+        | TyOf (_loc, TyId(_, IdUid(_, cnstr)), tps) ->
             let patts, exprs, _ = 
               List.fold_left 
               (fun (acc_patt, acc_expr, i) tp -> 
@@ -134,8 +181,11 @@ let odn_of_sum _loc ctp =
             in
               <:match_case<$uid:cnstr$ $patt$ -> 
                 ODN.VRT($str:sum_name cnstr$, $Gen.mk_expr_lst _loc exprs$)>>
-        | _ ->
-            assert false
+        | ty ->
+            begin
+              dbug_ty ty;
+              assert false
+            end
     in
       sum_fold _loc ctp
   in
@@ -146,10 +196,13 @@ let odn_of_record _loc ctp =
   let rec_def = 
     let rec rec_map = 
       function 
-        | <:ctyp<$lid:nm$: $ctp$>> ->
+        | TyCol(_loc, TyId(_, IdLid(_, nm)), ctp) ->
             <:expr<$str:nm$, $odn_of_type _loc ctp$ v.$lid:nm$>>
-        | _ -> 
-            assert false
+        | ty -> 
+            begin
+              dbug_ty ty;
+              assert false
+            end
     in
      List.map rec_map (list_of_ctyp ctp [])
  in
