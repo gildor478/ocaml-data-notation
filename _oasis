@@ -1,13 +1,14 @@
 OASISFormat:  0.1
 OCamlVersion: >= 3.10.2
 Name:         ocaml-data-notation
-Version:      0.0.1
+Version:      0.0.2
 Synopsis:     Store data using OCaml notation
 Authors:      Sylvain Le Gall
 License:      LGPL-2.1 with OCaml linking exception
 LicenseFile:  COPYING.txt
 Plugins:      StdFiles (0.1.0), DevFiles (0.1.0), META (0.1.0)
 FilesAB:      tests/TestConf.ml.ab
+BuildTools:   ocamlbuild
 
 Library odn
   Path:    src
@@ -24,7 +25,6 @@ Library pa_odn
   XMETAType:          syntax
   XMETARequires:      type-conv.syntax, camlp4, odn
   XMETADescription:   Syntax extension for odn
-  XOCamlbuildAutoDoc: false
 
 Library pa_noodn
   Path:               src
@@ -37,7 +37,6 @@ Library pa_noodn
   XMETAType:          syntax
   XMETARequires:      type-conv.syntax, camlp4
   XMETADescription:   Syntax extension that removes 'with odn'
-  XOCamlbuildAutoDoc: false
 
 Flag tests
   Description: Build and run tests
@@ -50,6 +49,5 @@ Executable test
   BuildDepends: oUnit, fileutils (>= 0.4.0), odn, str
   
 Test main
-  Type:    custom
   Run$:    flag(tests)
   Command: $test

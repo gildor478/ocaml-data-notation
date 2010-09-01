@@ -20,26 +20,131 @@
 (********************************************************************************)
 
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 7dc82232b51246aa1ddc26db70eed9d5) *)
-module BaseEnvLight = struct
-# 0 "/home/gildor/programmation/oasis/src/base/BaseEnvLight.ml"
+(* DO NOT EDIT (digest: 7fb0fb090412815b38d2781a00f37274) *)
+module OASISGettext = struct
+# 21 "/home/gildor/programmation/oasis/src/oasis/OASISGettext.ml"
   
-  (** Simple environment, allowing only to read values
-    *)
+  
+  let s_ str = 
+    str
+  
+  let f_ (str : ('a, 'b, 'c) format) =
+    str
+  
+  let fn_ fmt1 fmt2 n =
+    if n = 1 then
+      fmt1^^""
+    else
+      fmt2^^""
+  
+  let init = 
+    []
+  
+end
+
+module OASISExpr = struct
+# 21 "/home/gildor/programmation/oasis/src/oasis/OASISExpr.ml"
+  
+  
+  
+  open OASISGettext
+  
+  type test = string 
+  
+  type flag = string 
+  
+  type t =
+    | EBool of bool
+    | ENot of t
+    | EAnd of t * t
+    | EOr of t * t
+    | EFlag of flag
+    | ETest of test * string
+    
+  
+  type 'a choices = (t * 'a) list 
+  
+  let eval var_get t =
+    let rec eval' = 
+      function
+        | EBool b ->
+            b
+  
+        | ENot e -> 
+            not (eval' e)
+  
+        | EAnd (e1, e2) ->
+            (eval' e1) && (eval' e2)
+  
+        | EOr (e1, e2) -> 
+            (eval' e1) || (eval' e2)
+  
+        | EFlag nm ->
+            let v =
+              var_get nm
+            in
+              assert(v = "true" || v = "false");
+              (v = "true")
+  
+        | ETest (nm, vl) ->
+            let v =
+              var_get nm
+            in
+              (v = vl)
+    in
+      eval' t
+  
+  let choose ?printer ?name var_get lst =
+    let rec choose_aux = 
+      function
+        | (cond, vl) :: tl ->
+            if eval var_get cond then 
+              vl 
+            else
+              choose_aux tl
+        | [] ->
+            let str_lst = 
+              if lst = [] then
+                s_ "<empty>"
+              else
+                String.concat 
+                  (s_ ", ")
+                  (List.map
+                     (fun (cond, vl) ->
+                        match printer with
+                          | Some p -> p vl
+                          | None -> s_ "<no printer>")
+                     lst)
+            in
+              match name with 
+                | Some nm ->
+                    failwith
+                      (Printf.sprintf 
+                         (f_ "No result for the choice list '%s': %s")
+                         nm str_lst)
+                | None ->
+                    failwith
+                      (Printf.sprintf
+                         (f_ "No result for a choice list: %s")
+                         str_lst)
+    in
+      choose_aux (List.rev lst)
+  
+end
+
+
+module BaseEnvLight = struct
+# 21 "/home/gildor/programmation/oasis/src/base/BaseEnvLight.ml"
   
   module MapString = Map.Make(String)
   
   type t = string MapString.t
   
-  (** Environment default file 
-    *)
   let default_filename =
     Filename.concat 
       (Sys.getcwd ())
       "setup.data"
   
-  (** Load environment.
-    *)
   let load ?(allow_empty=false) ?(filename=default_filename) () =
     if Sys.file_exists filename then
       begin
@@ -97,9 +202,6 @@ module BaseEnvLight = struct
              filename)
       end
   
-  (** Get a variable that evaluate expression that can be found in it (see
-      {!Buffer.add_substitute}.
-    *)
   let var_get name env =
     let rec var_expand str =
       let buff =
@@ -120,12 +222,16 @@ module BaseEnvLight = struct
         Buffer.contents buff
     in
       var_expand (MapString.find name env)
+  
+  let var_choose lst env = 
+    OASISExpr.choose
+      (fun nm -> var_get nm env)
+      lst
 end
 
 
-# 105 "myocamlbuild.ml"
 module MyOCamlbuildFindlib = struct
-# 0 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/MyOCamlbuildFindlib.ml"
+# 21 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/MyOCamlbuildFindlib.ml"
   
   (** OCamlbuild extension, copied from 
     * http://brion.inria.fr/gallium/index.php/Using_ocamlfind_with_ocamlbuild
@@ -233,7 +339,7 @@ module MyOCamlbuildFindlib = struct
 end
 
 module MyOCamlbuildBase = struct
-# 0 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
+# 21 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
   
   (** Base functions for writing myocamlbuild.ml
       @author Sylvain Le Gall
@@ -244,15 +350,17 @@ module MyOCamlbuildBase = struct
   open Ocamlbuild_plugin
   
   type dir = string 
+  type file = string 
   type name = string 
+  type tag = string 
   
-# 52 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
+# 55 "/home/gildor/programmation/oasis/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
   
   type t =
       {
         lib_ocaml: (name * dir list) list;
-        lib_c:     (name * dir) list; 
-        flags:     (string list * spec) list;
+        lib_c:     (name * dir * file list) list; 
+        flags:     (tag list * (spec OASISExpr.choices)) list;
       } 
   
   let env_filename =
@@ -265,81 +373,89 @@ module MyOCamlbuildBase = struct
         (fun dispatch -> dispatch e)
         lst 
   
-  let dispatch t = 
-    function
-      | Before_options ->
-          let env = 
-            BaseEnvLight.load 
-              ~filename:env_filename 
-              ~allow_empty:true
-              ()
-          in
-          let no_trailing_dot s =
-            if String.length s >= 1 && s.[0] = '.' then
-              String.sub s 1 ((String.length s) - 1)
-            else
-              s
-          in
+  let dispatch t e = 
+    let env = 
+      BaseEnvLight.load 
+        ~filename:env_filename 
+        ~allow_empty:true
+        ()
+    in
+      match e with 
+        | Before_options ->
+            let no_trailing_dot s =
+              if String.length s >= 1 && s.[0] = '.' then
+                String.sub s 1 ((String.length s) - 1)
+              else
+                s
+            in
+              List.iter
+                (fun (opt, var) ->
+                   try 
+                     opt := no_trailing_dot (BaseEnvLight.var_get var env)
+                   with Not_found ->
+                     Printf.eprintf "W: Cannot get variable %s" var)
+                [
+                  Options.ext_obj, "ext_obj";
+                  Options.ext_lib, "ext_lib";
+                  Options.ext_dll, "ext_dll";
+                ]
+  
+        | After_rules -> 
+            (* Declare OCaml libraries *)
+            List.iter 
+              (function
+                 | lib, [] ->
+                     ocaml_lib lib;
+                 | lib, dir :: tl ->
+                     ocaml_lib ~dir:dir lib;
+                     List.iter 
+                       (fun dir -> 
+                          flag 
+                            ["ocaml"; "use_"^lib; "compile"] 
+                            (S[A"-I"; P dir]))
+                       tl)
+              t.lib_ocaml;
+  
+            (* Declare C libraries *)
             List.iter
-              (fun (opt, var) ->
-                 try 
-                   opt := no_trailing_dot (BaseEnvLight.var_get var env)
-                 with Not_found ->
-                   Printf.eprintf "W: Cannot get variable %s" var)
-              [
-                Options.ext_obj, "ext_obj";
-                Options.ext_lib, "ext_lib";
-                Options.ext_dll, "ext_dll";
-              ]
+              (fun (lib, dir, headers) ->
+                   (* Handle C part of library *)
+                   flag ["link"; "library"; "ocaml"; "byte"; "use_lib"^lib]
+                     (S[A"-dllib"; A("-l"^lib); A"-cclib"; A("-l"^lib)]);
   
-      | After_rules -> 
-          (* Declare OCaml libraries *)
-          List.iter 
-            (function
-               | lib, [] ->
-                   ocaml_lib lib;
-               | lib, dir :: tl ->
-                   ocaml_lib ~dir:dir lib;
-                   List.iter 
-                     (fun dir -> 
-                        flag 
-                          ["ocaml"; "use_"^lib; "compile"] 
-                          (S[A"-I"; P dir]))
-                     tl)
-            t.lib_ocaml;
+                   flag ["link"; "library"; "ocaml"; "native"; "use_lib"^lib]
+                     (S[A"-cclib"; A("-l"^lib)]);
+                        
+                   flag ["link"; "program"; "ocaml"; "byte"; "use_lib"^lib]
+                     (S[A"-dllib"; A("dll"^lib)]);
   
-          (* Declare C libraries *)
-          List.iter
-            (fun (lib, dir) ->
-                 (* Handle C part of library *)
-                 flag ["link"; "library"; "ocaml"; "byte"; "use_lib"^lib]
-                   (S[A"-dllib"; A("-l"^lib); A"-cclib"; A("-l"^lib)]);
+                   (* When ocaml link something that use the C library, then one
+                      need that file to be up to date.
+                    *)
+                   dep  ["link"; "ocaml"; "use_lib"^lib] 
+                     [dir/"lib"^lib^"."^(!Options.ext_lib)];
   
-                 flag ["link"; "library"; "ocaml"; "native"; "use_lib"^lib]
-                   (S[A"-cclib"; A("-l"^lib)]);
-                      
-                 flag ["link"; "program"; "ocaml"; "byte"; "use_lib"^lib]
-                   (S[A"-dllib"; A("dll"^lib)]);
+                   (* TODO: be more specific about what depends on headers *)
+                   (* Depends on .h files *)
+                   dep ["compile"; "c"] 
+                     headers;
   
-                 (* When ocaml link something that use the C library, then one
-                    need that file to be up to date.
-                  *)
-                 dep  ["link"; "ocaml"; "use_lib"^lib] 
-                   [dir/"lib"^lib^"."^(!Options.ext_lib)];
+                   (* Setup search path for lib *)
+                   flag ["link"; "ocaml"; "use_"^lib] 
+                     (S[A"-I"; P(dir)]);
+              )
+              t.lib_c;
   
-                 (* Setup search path for lib *)
-                 flag ["link"; "ocaml"; "use_"^lib] 
-                   (S[A"-I"; P(dir)]);
-            )
-            t.lib_c;
-  
-            (* Add flags *)
-            List.iter
-            (fun (tags, spec) ->
-               flag tags & spec)
-            t.flags
-      | _ -> 
-          ()
+              (* Add flags *)
+              List.iter
+              (fun (tags, cond_specs) ->
+                 let spec = 
+                   BaseEnvLight.var_choose cond_specs env
+                 in
+                   flag tags & spec)
+              t.flags
+        | _ -> 
+            ()
   
   let dispatch_default t =
     dispatch_combine 
@@ -351,7 +467,6 @@ module MyOCamlbuildBase = struct
 end
 
 
-# 333 "myocamlbuild.ml"
 open Ocamlbuild_plugin;;
 let package_default =
   {
