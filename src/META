@@ -20,11 +20,12 @@
 ################################################################################
 
 # OASIS_START
-# DO NOT EDIT (digest: b03a568e0486a142557111e1fc125713)
+# DO NOT EDIT (digest: 76a57250480fb2fef14acb964037297b)
 version = "0.0.2"
 description = "Store data using OCaml notation"
 archive(byte) = "odn.cma"
 archive(native) = "odn.cmxa"
+exists_if = "odn.cma"
 package "without" (
  description = "Virtual container"
  package "syntax" (
@@ -33,6 +34,7 @@ package "without" (
   requires = "type-conv.syntax camlp4"
   archive(syntax,preprocessor) = "pa_noodn.cma"
   archive(syntax,toploop) = "pa_noodn.cma"
+  exists_if = "pa_noodn.cma"
  )
 )
 
@@ -44,6 +46,7 @@ package "with" (
   requires = "type-conv.syntax camlp4 odn"
   archive(syntax,preprocessor) = "pa_odn.cma"
   archive(syntax,toploop) = "pa_odn.cma"
+  exists_if = "pa_odn.cma"
  )
 )
 # OASIS_STOP

@@ -20,10 +20,12 @@
 (********************************************************************************)
 
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 7fb0fb090412815b38d2781a00f37274) *)
+(* DO NOT EDIT (digest: f956bd7c691addea5ef0b901226fff00) *)
 module OASISGettext = struct
 # 21 "/home/gildor/programmation/oasis/src/oasis/OASISGettext.ml"
   
+  let ns_ str = 
+    str
   
   let s_ str = 
     str
