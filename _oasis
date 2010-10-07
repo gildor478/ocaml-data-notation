@@ -46,7 +46,7 @@ Executable test
   MainIs:       test.ml
   Install:      false
   Build$:       flag(tests)
-  BuildDepends: oUnit, fileutils (>= 0.4.0), odn, str
+  BuildDepends: oUnit (>= 1.1.0), fileutils (>= 0.4.0), odn, str
   
 Test main
   Run$:    flag(tests)
