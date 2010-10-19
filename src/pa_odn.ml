@@ -69,6 +69,21 @@ let rec odn_of_tuple _loc tps =
       <:expr<fun $patt$ -> 
         ODN.TPL($Gen.mk_expr_lst _loc exprs$)>>
 
+and odn_of_variant _loc vrts = 
+  let lst = 
+    list_of_ctyp vrts []
+  in
+  let lst' = 
+    List.map 
+      (function
+         | <:ctyp<`$cnstr$>> ->
+             <:match_case<`$cnstr$ -> ODN.PVR $str:cnstr$ >>
+         | _ ->
+             assert false)
+      lst
+  in
+    <:expr<function $mcOr_of_list lst'$>>
+
 and odn_of_type _loc =
   function 
     | <:ctyp<$id:id$>> ->
@@ -94,6 +109,11 @@ and odn_of_type _loc =
         <:expr<$id:odn_id_name _loc parm []$>>
     | <:ctyp< ( $tup:tp$ ) >> ->
         odn_of_tuple _loc tp
+    | <:ctyp<[$vrts$]>> ->
+        odn_of_variant _loc vrts
+    | <:ctyp<`$pvrn$>> ->
+        prerr_endline "Coucou";
+        assert false
     | _ ->
         assert false
 ;;
@@ -101,53 +121,6 @@ and odn_of_type _loc =
 let odn_of_alias _loc ctp =
   <:expr<$odn_of_type _loc ctp$>>
 ;;
-
-let dbug_ty ty = 
-(* DBUG code to find missing constructor in pattern match
- * Compatible with OCaml 3.12.0
-  let str = 
-    match ty with 
-      | TyNil _       -> "TyNil"
-      | TyAli _       -> "TyAli"
-      | TyAny _       -> "TyAny"
-      | TyApp _       -> "TyApp"
-      | TyArr _       -> "TyArr"
-      | TyCls _       -> "TyCls"
-      | TyLab _       -> "TyLab"
-      | TyId _        -> "TyId"
-      | TyMan _       -> "TyMan"
-      | TyDcl _       -> "TyDcl"
-      | TyObj _       -> "TyObj"
-      | TyOlb _       -> "TyOlb"
-      | TyPol _       -> "TyPol"
-      | TyQuo _       -> "TyQuo"
-      | TyQuP _       -> "TyQuP"
-      | TyQuM _       -> "TyQuM"
-      | TyVrn _       -> "TyVrn"
-      | TyRec _       -> "TyRec"
-      | TyCol _       -> "TyCol"
-      | TySem _       -> "TySem"
-      | TyCom _       -> "TyCom"
-      | TySum _       -> "TySum"
-      | TyOf _        -> "TyOf"
-      | TyAnd _       -> "TyAnd"
-      | TyOr _        -> "TyOr"
-      | TyPrv _       -> "TyPrv"
-      | TyMut _       -> "TyMut"
-      | TyTup _       -> "TyTup"
-      | TySta _       -> "TySta"
-      | TyVrnEq _     -> "TyVrnEq"
-      | TyVrnSup _    -> "TyVrnSup"
-      | TyVrnInf _    -> "TyVrnInf"
-      | TyVrnInfSup _ -> "TyVrnInfSup"
-      | TyAmp _       -> "TyAmp"
-      | TyOfAmp _     -> "TyOfAmp"
-      | TyPkg _       -> "TyPkg"
-      | TyAnt _       -> "TyAnt"
-  in
-    prerr_endline str
- *)
-    ()
 
 let odn_of_sum _loc ctp = 
   let sum_def =
@@ -182,10 +155,7 @@ let odn_of_sum _loc ctp =
               <:match_case<$uid:cnstr$ $patt$ -> 
                 ODN.VRT($str:sum_name cnstr$, $Gen.mk_expr_lst _loc exprs$)>>
         | ty ->
-            begin
-              dbug_ty ty;
-              assert false
-            end
+            assert false
     in
       sum_fold _loc ctp
   in
@@ -199,10 +169,7 @@ let odn_of_record _loc ctp =
         | TyCol(_loc, TyId(_, IdLid(_, nm)), ctp) ->
             <:expr<$str:nm$, $odn_of_type _loc ctp$ v.$lid:nm$>>
         | ty -> 
-            begin
-              dbug_ty ty;
-              assert false
-            end
+            assert false
     in
      List.map rec_map (list_of_ctyp ctp [])
  in

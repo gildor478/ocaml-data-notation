@@ -169,5 +169,9 @@ let _res: test_result list =
                  "Camlp4OCamlPrinter.cmo";
                  "tests/data/oasis-examples/OASISTypes.ml"]
          );
+         
+         test_files
+            ("tests/data/",
+             ["polyvariants.ml"]);
        ])
 ;;

@@ -1,7 +1,7 @@
 OASISFormat:  0.1
 OCamlVersion: >= 3.10.2
 Name:         ocaml-data-notation
-Version:      0.0.2
+Version:      0.0.3
 Synopsis:     Store data using OCaml notation
 Authors:      Sylvain Le Gall
 License:      LGPL-2.1 with OCaml linking exception

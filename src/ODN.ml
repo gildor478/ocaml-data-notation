@@ -56,6 +56,8 @@ type t =
   | APP of var_name * (var_name * t) list * t list 
   (** Variable *)
   | VAR of var_name
+  (** Polymorphic variant *)
+  | PVR of variant_name
 
 (** {2 Basic conversion} 
   *)
@@ -234,6 +236,8 @@ let pp_odn ?(opened_modules=[]) fmt t =
             args
       | VAR nm ->
           pp_print_id fmt nm
+      | PVR nm ->
+          pp_print_id fmt ("`"^nm)
   in
 
     pp_odn_aux fmt t
