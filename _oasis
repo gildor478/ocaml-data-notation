@@ -1,4 +1,4 @@
-OASISFormat:  0.1
+OASISFormat:  0.2
 OCamlVersion: >= 3.10.2
 Name:         ocaml-data-notation
 Version:      0.0.3
@@ -6,7 +6,7 @@ Synopsis:     Store data using OCaml notation
 Authors:      Sylvain Le Gall
 License:      LGPL-2.1 with OCaml linking exception
 LicenseFile:  COPYING.txt
-Plugins:      StdFiles (0.1.0), DevFiles (0.1.0), META (0.1.0)
+Plugins:      StdFiles (0.2), DevFiles (0.2), META (0.2)
 FilesAB:      tests/TestConf.ml.ab
 BuildTools:   ocamlbuild
 

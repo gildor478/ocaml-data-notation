@@ -20,7 +20,7 @@
 (********************************************************************************)
 
 (* OASIS_START *)
-(* DO NOT EDIT (digest: f956bd7c691addea5ef0b901226fff00) *)
+(* DO NOT EDIT (digest: 03755b9fa25b2aeae802c75407f5a0fa) *)
 module OASISGettext = struct
 # 21 "/home/gildor/programmation/oasis/src/oasis/OASISGettext.ml"
   
@@ -30,7 +30,7 @@ module OASISGettext = struct
   let s_ str = 
     str
   
-  let f_ (str : ('a, 'b, 'c) format) =
+  let f_ (str : ('a, 'b, 'c, 'd) format4) =
     str
   
   let fn_ fmt1 fmt2 n =
