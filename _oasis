@@ -3,12 +3,19 @@ OCamlVersion: >= 3.10.2
 Name:         ocaml-data-notation
 Version:      0.0.3
 Synopsis:     Store data using OCaml notation
+Copyright:    (C) 2009-2010, OCamlCore SARL
 Authors:      Sylvain Le Gall
 License:      LGPL-2.1 with OCaml linking exception
 LicenseFile:  COPYING.txt
 Plugins:      StdFiles (0.2), DevFiles (0.2), META (0.2)
 FilesAB:      tests/TestConf.ml.ab
 BuildTools:   ocamlbuild
+
+Description:
+  This library uses `type-conv` to dump OCaml data structures using OCaml data
+  notation. 
+  . 
+  This kind of data dumping helps to write OCaml code generator, like OASIS.
 
 Library odn
   Path:    src
@@ -51,3 +58,8 @@ Executable test
 Test main
   Run$:    flag(tests)
   Command: $test
+
+SourceRepository head
+  Type: darcs
+  Location: http://darcs.ocamlcore.org/repos/ocaml-data-notation
+  Browser: http://darcs.ocamlcore.org/cgi-bin/darcsweb.cgi?r=ocaml-data-notation;a=summary
