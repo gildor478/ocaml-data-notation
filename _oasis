@@ -1,15 +1,16 @@
 OASISFormat:  0.2
 OCamlVersion: >= 3.10.2
 Name:         ocaml-data-notation
-Version:      0.0.3
+Version:      0.0.4
 Synopsis:     Store data using OCaml notation
-Copyright:    (C) 2009-2010, OCamlCore SARL
+Copyrights:   (C) 2009-2010 OCamlCore SARL
 Authors:      Sylvain Le Gall
 License:      LGPL-2.1 with OCaml linking exception
 LicenseFile:  COPYING.txt
 Plugins:      StdFiles (0.2), DevFiles (0.2), META (0.2)
 FilesAB:      tests/TestConf.ml.ab
 BuildTools:   ocamlbuild
+Homepage:     http://forge.ocamlcore.org/projects/odn
 
 Description:
   This library uses `type-conv` to dump OCaml data structures using OCaml data

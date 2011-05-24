@@ -69,15 +69,27 @@ let rec odn_of_tuple _loc tps =
       <:expr<fun $patt$ -> 
         ODN.TPL($Gen.mk_expr_lst _loc exprs$)>>
 
-and odn_of_variant _loc vrts = 
+and odn_of_variants _loc vrts = 
   let lst = 
     list_of_ctyp vrts []
   in
+
   let lst' = 
     List.map 
       (function
          | <:ctyp<`$cnstr$>> ->
-             <:match_case<`$cnstr$ -> ODN.PVR $str:cnstr$ >>
+             <:match_case<`$cnstr$ -> ODN.PVR ($str:cnstr$, None) >>
+         | <:ctyp<`$cnstr$ of $tps$>> ->
+             begin
+               let vnm = "tpl" in
+               let var_expr = Gen.ide _loc vnm in
+               let var_patt = Gen.idp _loc vnm in
+               let expr = 
+                 <:expr<$odn_of_tuple _loc tps$ $var_expr$>>
+               in
+                 <:match_case<`$uid:cnstr$ $var_patt$ ->
+                   ODN.PVR($str:cnstr$, Some $expr$)>>
+             end
          | _ ->
              assert false)
       lst
@@ -110,10 +122,7 @@ and odn_of_type _loc =
     | <:ctyp< ( $tup:tp$ ) >> ->
         odn_of_tuple _loc tp
     | <:ctyp<[$vrts$]>> ->
-        odn_of_variant _loc vrts
-    | <:ctyp<`$pvrn$>> ->
-        prerr_endline "Coucou";
-        assert false
+        odn_of_variants _loc vrts
     | _ ->
         assert false
 ;;
@@ -177,11 +186,6 @@ let odn_of_record _loc ctp =
        fun v -> 
          ODN.REC ($str:get_conv_path ()$, 
               $Gen.mk_expr_lst _loc rec_def$)>>
-;;
-
-let odn_of_variants _loc ctp =
-  dbug "variants";
-  assert false
 ;;
 
 let odn_of_mani _loc ctp1 ctp2 = 

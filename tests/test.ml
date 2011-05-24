@@ -70,7 +70,12 @@ let _res: test_result list =
                      assert_command
                        "camlp4o" 
                        [pa_type_conv_cmo; pa_odn_cma; 
-                        "Camlp4OCamlPrinter.cmo"; fn])
+                        "Camlp4OCamlPrinter.cmo"; fn];
+                     assert_command
+                       "camlp4o"
+                       [pa_type_conv_cmo; pa_odn_cma;
+                        "Camlp4AstLifter.cmo"; "Camlp4OCamlPrinter.cmo"; 
+                        fn])
                   fns
               end;
             
