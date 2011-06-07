@@ -28,10 +28,10 @@ Library pa_odn
   FindlibParent:      odn
   FindlibContainers:  with
   FindlibName:        syntax
-  BuildDepends:       type-conv (>= 1.5.0), camlp4.lib, camlp4.quotations.o 
+  BuildDepends:       type-conv (>= 2.3.0), camlp4.lib, camlp4.quotations.o 
   CompiledObject:     byte
   XMETAType:          syntax
-  XMETARequires:      type-conv.syntax, camlp4, odn
+  XMETARequires:      type-conv, camlp4, odn
   XMETADescription:   Syntax extension for odn
 
 Library pa_noodn
@@ -43,7 +43,7 @@ Library pa_noodn
   BuildDepends:       type-conv, camlp4.lib, camlp4.quotations.o 
   CompiledObject:     byte
   XMETAType:          syntax
-  XMETARequires:      type-conv.syntax, camlp4
+  XMETARequires:      type-conv, camlp4
   XMETADescription:   Syntax extension that removes 'with odn'
 
 Flag tests

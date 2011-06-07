@@ -31,7 +31,7 @@ package "without" (
  package "syntax" (
   version = "0.0.2"
   description = "Syntax extension that removes 'with odn'"
-  requires = "type-conv.syntax camlp4"
+  requires = "type-conv camlp4"
   archive(syntax,preprocessor) = "pa_noodn.cma"
   archive(syntax,toploop) = "pa_noodn.cma"
   exists_if = "pa_noodn.cma"
@@ -43,7 +43,7 @@ package "with" (
  package "syntax" (
   version = "0.0.2"
   description = "Syntax extension for odn"
-  requires = "type-conv.syntax camlp4 odn"
+  requires = "type-conv camlp4 odn"
   archive(syntax,preprocessor) = "pa_odn.cma"
   archive(syntax,toploop) = "pa_odn.cma"
   exists_if = "pa_odn.cma"

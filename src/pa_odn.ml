@@ -203,7 +203,7 @@ let odn_of tp =
     function
       | TyDcl (_loc, type_name, tps, rhs, _cl) ->
           let body = 
-            Gen.switch_tp_def _loc
+            Gen.switch_tp_def
               ~alias:odn_of_alias
               ~sum:odn_of_sum
               ~record:odn_of_record
@@ -229,7 +229,7 @@ let odn_of tp =
   let _loc, recursive = 
     match tp with
       | TyDcl (_loc, type_name, _, rhs, _) -> 
-          _loc, Gen.type_is_recursive _loc type_name rhs
+          _loc, Gen.type_is_recursive type_name rhs
       | TyAnd (_loc, _, _) -> 
           _loc, true
       | _ -> assert false

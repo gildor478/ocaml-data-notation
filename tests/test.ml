@@ -42,8 +42,8 @@ let _res: test_result list =
   let pa_noodn_cma =
     Filename.concat odn_path "pa_noodn.cma"
   in
-  let pa_type_conv_cmo = 
-    Filename.concat TestConf.pkg_type_conv_dir "pa_type_conv.cmo"
+  let pa_type_conv_cma = 
+    Filename.concat TestConf.pkg_type_conv_dir "pa_type_conv.cma"
   in
   let test_files (dir, fns) = 
     let nm =
@@ -69,11 +69,11 @@ let _res: test_result list =
                      print_endline ("File "^fn^": ");
                      assert_command
                        "camlp4o" 
-                       [pa_type_conv_cmo; pa_odn_cma; 
+                       [pa_type_conv_cma; pa_odn_cma; 
                         "Camlp4OCamlPrinter.cmo"; fn];
                      assert_command
                        "camlp4o"
-                       [pa_type_conv_cmo; pa_odn_cma;
+                       [pa_type_conv_cma; pa_odn_cma;
                         "Camlp4AstLifter.cmo"; "Camlp4OCamlPrinter.cmo"; 
                         fn])
                   fns
@@ -82,7 +82,7 @@ let _res: test_result list =
             assert_command
               "ocamlfind"
               (["ocamlc"; "-g"; "-o"; "test"; "-I"; odn_path;
-                "-package"; "type-conv.syntax"; "-syntax";  "camlp4o";
+                "-package"; "type-conv"; "-syntax";  "camlp4o";
                 "-ppopt"; pa_odn_cma; "odn.cma"] @ fns)))
          (fun old_cwd ->
             rm 
@@ -170,7 +170,7 @@ let _res: test_result list =
               assert_command 
                 ~foutput
                 "camlp4o" 
-                [pa_type_conv_cmo; pa_noodn_cma; 
+                [pa_type_conv_cma; pa_noodn_cma; 
                  "Camlp4OCamlPrinter.cmo";
                  "tests/data/oasis-examples/OASISTypes.ml"]
          );
