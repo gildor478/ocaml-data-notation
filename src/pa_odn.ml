@@ -112,9 +112,9 @@ and odn_of_type _loc =
                 assert false
         end
     | <:ctyp<($tp$ option)>> ->
-        <:expr<ODN.of_option $odn_of_type _loc tp$>>
+        <:expr<function x -> ODN.of_option $odn_of_type _loc tp$ x>>
     | <:ctyp<($tp$ list)>> ->
-        <:expr<ODN.of_list $odn_of_type _loc tp$>> 
+        <:expr<function x -> ODN.of_list $odn_of_type _loc tp$ x>>
     | <:ctyp<($tp1$ $tp2$)>> ->
         <:expr<$odn_of_type _loc tp2$ $odn_of_type _loc tp1$>>
     | <:ctyp<'$parm$>> ->

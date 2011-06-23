@@ -1,3 +1,10 @@
+2011-06-23 Sylvain Le Gall <sylvain.le-gall .A.T. ocamlcore.com>
+
+ * New version 0.0.6
+ * Fix 'type foo = bar list' which emits 'and odn_of_foo = ODN.of_list
+   odn_of_bar', which is not a valid RHS for a letrec 
+   (thanks to Michael Ekstrand)
+
 2011-06-07 Sylvain Le Gall <sylvain.le-gall .A.T. ocamlcore.com>
   
  * New version 0.0.5
