@@ -1,27 +1,6 @@
-################################################################################
-#  ODN: Dump data using OCaml notation                                         #
-#                                                                              #
-#  Copyright (C) 2009-2011, OCamlCore SARL                                     #
-#                                                                              #
-#  This library is free software; you can redistribute it and/or modify it     #
-#  under the terms of the GNU Lesser General Public License as published by    #
-#  the Free Software Foundation; either version 2.1 of the License, or (at     #
-#  your option) any later version, with the OCaml static compilation           #
-#  exception.                                                                  #
-#                                                                              #
-#  This library is distributed in the hope that it will be useful, but         #
-#  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY  #
-#  or FITNESS FOR A PARTICULAR PURPOSE. See the file COPYING for more          #
-#  details.                                                                    #
-#                                                                              #
-#  You should have received a copy of the GNU Lesser General Public License    #
-#  along with this library; if not, write to the Free Software Foundation,     #
-#  Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA               #
-################################################################################
-
 # OASIS_START
-# DO NOT EDIT (digest: 76a57250480fb2fef14acb964037297b)
-version = "0.0.2"
+# DO NOT EDIT (digest: f40f2c4649c9f347534bc282444836ee)
+version = "0.0.6"
 description = "Store data using OCaml notation"
 archive(byte) = "odn.cma"
 archive(native) = "odn.cmxa"
@@ -29,11 +8,11 @@ exists_if = "odn.cma"
 package "without" (
  description = "Virtual container"
  package "syntax" (
-  version = "0.0.2"
+  version = "0.0.6"
   description = "Syntax extension that removes 'with odn'"
   requires = "type-conv camlp4"
-  archive(syntax,preprocessor) = "pa_noodn.cma"
-  archive(syntax,toploop) = "pa_noodn.cma"
+  archive(syntax, preprocessor) = "pa_noodn.cma"
+  archive(syntax, toploop) = "pa_noodn.cma"
   exists_if = "pa_noodn.cma"
  )
 )
@@ -41,12 +20,13 @@ package "without" (
 package "with" (
  description = "Virtual container"
  package "syntax" (
-  version = "0.0.2"
+  version = "0.0.6"
   description = "Syntax extension for odn"
   requires = "type-conv camlp4 odn"
-  archive(syntax,preprocessor) = "pa_odn.cma"
-  archive(syntax,toploop) = "pa_odn.cma"
+  archive(syntax, preprocessor) = "pa_odn.cma"
+  archive(syntax, toploop) = "pa_odn.cma"
   exists_if = "pa_odn.cma"
  )
 )
 # OASIS_STOP
+
