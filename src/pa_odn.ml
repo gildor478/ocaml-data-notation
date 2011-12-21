@@ -44,7 +44,7 @@ let odn_id_name _loc tn rev_path =
 ;;
 
 let odn_patt_name _loc tn =
-  Gen.idp _loc (odn_fun_name tn)
+  <:patt< $lid:odn_fun_name tn$ >>
 ;;
 
 let rec odn_of_tuple _loc tps =
@@ -54,8 +54,8 @@ let rec odn_of_tuple _loc tps =
          let vnm =
            "v"^(string_of_int i)
          in
-           (Gen.idp _loc vnm) :: acc_patt, 
-           <:expr<$odn_of_type _loc tp$ $Gen.ide _loc vnm$>> :: acc_expr, 
+           <:patt< $lid:vnm$ >> :: acc_patt,
+           <:expr< $odn_of_type _loc tp$ $lid:vnm$ >> :: acc_expr,
            i + 1)
       ([], [], 0)
       (List.rev 
@@ -82,8 +82,8 @@ and odn_of_variants _loc vrts =
          | <:ctyp<`$cnstr$ of $tps$>> ->
              begin
                let vnm = "tpl" in
-               let var_expr = Gen.ide _loc vnm in
-               let var_patt = Gen.idp _loc vnm in
+               let var_expr = <:expr< $lid:vnm$ >> in
+               let var_patt = <:patt< $lid:vnm$ >> in
                let expr = 
                  <:expr<$odn_of_tuple _loc tps$ $var_expr$>>
                in
@@ -149,8 +149,8 @@ let odn_of_sum _loc ctp =
                  let vnm =
                    "v"^(string_of_int i)
                  in
-                   (Gen.idp _loc vnm) :: acc_patt, 
-                   <:expr<$odn_of_type _loc tp$ $Gen.ide _loc vnm$>> :: acc_expr, 
+                   <:patt< $lid:vnm$ >> :: acc_patt,
+                   <:expr< $odn_of_type _loc tp$ $lid:vnm$ >> :: acc_expr,
                    i + 1)
               ([], [], 0)
               (List.rev 

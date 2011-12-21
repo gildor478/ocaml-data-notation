@@ -28,7 +28,7 @@ Library pa_odn
   FindlibParent:      odn
   FindlibContainers:  with
   FindlibName:        syntax
-  BuildDepends:       type-conv (>= 2.3.0), camlp4.lib, camlp4.quotations.o 
+  BuildDepends:       type-conv (>= 3.0.4), camlp4.lib, camlp4.quotations.o 
   CompiledObject:     byte
   XMETAType:          syntax
   XMETARequires:      type-conv, camlp4, odn
@@ -45,9 +45,6 @@ Library pa_noodn
   XMETAType:          syntax
   XMETARequires:      type-conv, camlp4
   XMETADescription:   Syntax extension that removes 'with odn'
-
-Flag tests
-  Description: Build and run tests
 
 Executable test
   Path:         tests
