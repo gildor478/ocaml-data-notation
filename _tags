@@ -20,7 +20,7 @@
 ################################################################################
 
 # OASIS_START
-# DO NOT EDIT (digest: 28ce7a86a8b4e6a8732422e1cd22f0b4)
+# DO NOT EDIT (digest: 0a75a06ca71ec53247032891856ea4e1)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -35,9 +35,11 @@
 "_darcs": -traverse
 "_darcs": not_hygienic
 # Library odn
+"src/odn.cmxs": use_odn
 # Library pa_noodn
+"src/pa_noodn.cmxs": use_pa_noodn
 # Library pa_odn
-"src": include
+"src/pa_odn.cmxs": use_pa_odn
 <src/*.ml{,i}>: pkg_type-conv
 <src/*.ml{,i}>: pkg_camlp4.quotations.o
 <src/*.ml{,i}>: pkg_camlp4.lib
