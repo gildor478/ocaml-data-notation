@@ -1,3 +1,13 @@
+2012-05-23 Sylvain Le Gall <sylvain .A.T. le-gall.net>
+
+  * New version 0.0.9
+  * Use type_conv 3.0.5
+
+2012-03-20 Sylvain Le Gall <sylvain .A.T. le-gall.net>
+
+  * New version to 0.0.8 
+  * Regenerate using oasis 0.3.0~rc3
+
 2011-12-21 Sylvain Le Gall <sylvain .A.T. le-gall.net>
   
   * New version 0.0.7
