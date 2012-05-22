@@ -1,7 +1,7 @@
-OASISFormat:  0.2
+OASISFormat:  0.3
 OCamlVersion: >= 3.10.2
 Name:         ocaml-data-notation
-Version:      0.0.8
+Version:      0.0.9
 Synopsis:     Store data using OCaml notation
 Copyrights:   (C) 2009-2010 OCamlCore SARL
 Authors:      Sylvain Le Gall
@@ -13,7 +13,7 @@ BuildTools:   ocamlbuild
 Homepage:     http://forge.ocamlcore.org/projects/odn
 
 Description:
-  This library uses `type-conv` to dump OCaml data structures using OCaml data
+  This library uses `type_conv` to dump OCaml data structures using OCaml data
   notation. 
   . 
   This kind of data dumping helps to write OCaml code generator, like OASIS.
@@ -28,10 +28,10 @@ Library pa_odn
   FindlibParent:      odn
   FindlibContainers:  with
   FindlibName:        syntax
-  BuildDepends:       type-conv (>= 3.0.4), camlp4.lib, camlp4.quotations.o 
+  BuildDepends:       type_conv (>= 3.0.5), camlp4.lib, camlp4.quotations.o 
   CompiledObject:     byte
   XMETAType:          syntax
-  XMETARequires:      type-conv, camlp4, odn
+  XMETARequires:      type_conv, camlp4, odn
   XMETADescription:   Syntax extension for odn
 
 Library pa_noodn
@@ -40,10 +40,10 @@ Library pa_noodn
   FindlibParent:      odn
   FindlibContainers:  without
   FindlibName:        syntax
-  BuildDepends:       type-conv, camlp4.lib, camlp4.quotations.o 
+  BuildDepends:       type_conv, camlp4.lib, camlp4.quotations.o 
   CompiledObject:     byte
   XMETAType:          syntax
-  XMETARequires:      type-conv, camlp4
+  XMETARequires:      type_conv, camlp4
   XMETADescription:   Syntax extension that removes 'with odn'
 
 Executable test
