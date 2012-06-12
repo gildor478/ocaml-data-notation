@@ -21,7 +21,7 @@ godi.build("godi-type_conv")
 godi.build("godi-ounit")
 godi.build("godi-ocaml-fileutils")
 
-ci.exec("ocaml", "setup.ml", "-configure", "--enable-backtrace")
+ci.exec("ocaml", "setup.ml", "-configure")
 ci.exec("ocaml", "setup.ml", "-build")
 ci.exec("ocaml", "setup.ml", "-test")
 darcs.create_tag(oasis.package_version())
