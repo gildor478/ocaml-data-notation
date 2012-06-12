@@ -19,7 +19,7 @@ godi.upgrade()
 godi.build("godi-findlib")
 godi.build("godi-type_conv")
 godi.build("godi-ounit")
-godi.build("godi-fileutils")
+godi.build("godi-ocaml-fileutils")
 
 ci.exec("ocaml", "setup.ml", "-configure", "--enable-backtrace")
 ci.exec("ocaml", "setup.ml", "-build")
