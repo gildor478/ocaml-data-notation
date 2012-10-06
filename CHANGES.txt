@@ -1,3 +1,8 @@
+2012-10-06 Sylvain Le Gall <syvlain .A.T. le-gall.net>
+ 
+  * New version 0.0.9
+  * Use type_conv 108.07.01 (Closes: #1226)
+
 2012-05-23 Sylvain Le Gall <sylvain .A.T. le-gall.net>
 
   * New version 0.0.9

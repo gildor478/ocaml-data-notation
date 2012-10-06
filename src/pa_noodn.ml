@@ -32,7 +32,7 @@ open Pa_type_conv
 
 add_generator
   "odn"
-  (fun _ ->
+  (fun _ _ ->
      let _loc = 
        Loc.ghost
      in

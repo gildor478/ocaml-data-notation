@@ -198,7 +198,7 @@ let odn_of_nil _loc =
   assert false
 ;;
 
-let odn_of tp = 
+let odn_of _ tp = 
   let rec odn_aux = 
     function
       | TyDcl (_loc, type_name, tps, rhs, _cl) ->

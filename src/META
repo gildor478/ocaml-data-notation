@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: fa3321cd1f2a5901240b4fac5b88497f)
-version = "0.0.9"
+# DO NOT EDIT (digest: 67893aeacddde3951841656db55875d2)
+version = "0.0.10"
 description = "Store data using OCaml notation"
 archive(byte) = "odn.cma"
 archive(byte, plugin) = "odn.cma"
@@ -10,7 +10,7 @@ exists_if = "odn.cma"
 package "without" (
  description = "Virtual container"
  package "syntax" (
-  version = "0.0.9"
+  version = "0.0.10"
   description = "Syntax extension that removes 'with odn'"
   requires = "type_conv camlp4"
   archive(syntax, preprocessor) = "pa_noodn.cma"
@@ -22,7 +22,7 @@ package "without" (
 package "with" (
  description = "Virtual container"
  package "syntax" (
-  version = "0.0.9"
+  version = "0.0.10"
   description = "Syntax extension for odn"
   requires = "type_conv camlp4 odn"
   archive(syntax, preprocessor) = "pa_odn.cma"
