@@ -117,5 +117,4 @@
 ^setup.data$
 ^setup.log$
 ^tests/TestConf.ml$
-^ocaml-data-notation-.*\.tar\.gz$
-^ocaml-data-notation-.*\.tar\.gz.asc$
+^dist$
