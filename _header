@@ -1,6 +1,7 @@
-ODN: Dump data using OCaml notation
+ocaml-data-notation: Store data using OCaml notation
 
 Copyright (C) 2009-2011, OCamlCore SARL
+Copyright (C) 2013, Sylvain Le Gall
 
 This library is free software; you can redistribute it and/or modify it
 under the terms of the GNU Lesser General Public License as published by
