@@ -1,5 +1,5 @@
 2012-10-06 Sylvain Le Gall <syvlain .A.T. le-gall.net>
- 
+
   * New version 0.0.9
   * Use type_conv 108.07.01 (Closes: #1226)
 
@@ -10,11 +10,11 @@
 
 2012-03-20 Sylvain Le Gall <sylvain .A.T. le-gall.net>
 
-  * New version to 0.0.8 
+  * New version to 0.0.8
   * Regenerate using oasis 0.3.0~rc3
 
 2011-12-21 Sylvain Le Gall <sylvain .A.T. le-gall.net>
-  
+
   * New version 0.0.7
   * Use type-conv 3.0.4
 
@@ -22,11 +22,11 @@
 
  * New version 0.0.6
  * Fix 'type foo = bar list' which emits 'and odn_of_foo = ODN.of_list
-   odn_of_bar', which is not a valid RHS for a letrec 
+   odn_of_bar', which is not a valid RHS for a letrec
    (thanks to Michael Ekstrand)
 
 2011-06-07 Sylvain Le Gall <sylvain.le-gall .A.T. ocamlcore.com>
-  
+
  * New version 0.0.5
  * Upgrade to type-conv 2.3.0 (thanks to a patch provided by Till Varoquaux)
 
@@ -36,7 +36,7 @@
  * Handle polymorphic variants with arguments
 
 2010-10-22 Sylvain Le Gall <sylvain.le-gall .A.T. ocamlcore.com>
-  
+
  * New version 0.0.3
  * Limited support for polymorphic variant
 

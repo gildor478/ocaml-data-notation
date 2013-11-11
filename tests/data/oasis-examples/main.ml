@@ -22,7 +22,7 @@
 
 open OASISTypes;;
 
-let pkg = 
+let pkg =
   {
     oasis_version =  "1.0";
     ocaml_version =  None;
@@ -52,5 +52,5 @@ let pkg =
     schema_data =    PropList.Data.create ();
   }
 
-let () = 
+let () =
   print_endline (ODN.string_of_odn (odn_of_package pkg))

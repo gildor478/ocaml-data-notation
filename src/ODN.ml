@@ -21,7 +21,7 @@
 (******************************************************************************)
 
 (** OCaml data notation.
-    
+
     This module helps to translate OCaml data into a string following
     OCaml syntax.
   *)
@@ -34,7 +34,7 @@ type field_name   = string
 type variant_name = string
 type var_name     = string
 
-type t = 
+type t =
   (** Record *)
   | REC of module_name * (field_name * t) list
   (** List *)
@@ -54,30 +54,30 @@ type t =
   (** Unit () *)
   | UNT
   (** Function application *)
-  | APP of var_name * (var_name * t) list * t list 
+  | APP of var_name * (var_name * t) list * t list
   (** Variable *)
   | VAR of var_name
   (** Polymorphic variant *)
-  | PVR of variant_name * t option 
+  | PVR of variant_name * t option
 
-(** {2 Basic conversion} 
+(** {2 Basic conversion}
   *)
 
-let of_unit () = 
+let of_unit () =
   UNT
 
 let of_bool b =
-  BOO b 
+  BOO b
 
 let of_string s =
   STR s
 
-let of_int i = 
+let of_int i =
   INT i
 
 let of_float f =
   FLT f
-   
+
 let of_option f =
   function
     | Some v -> VRT("Some", [f v])
@@ -89,13 +89,13 @@ let of_list f lst =
 let of_tuple2 (f1, f2) (v1, v2) =
   TPL [f1 v1; f2 v2]
 
-let of_tuple3 (f1, f2, f3) (v1, v2, v3) = 
+let of_tuple3 (f1, f2, f3) (v1, v2, v3) =
   TPL [f1 v1; f2 v2; f3 v3]
 
-let of_tuple4 (f1, f2, f3, f4) (v1, v2, v3, v4) = 
+let of_tuple4 (f1, f2, f3, f4) (v1, v2, v3, v4) =
   TPL [f1 v1; f2 v2; f3 v3; f4 v4]
 
-let of_tuple5 (f1, f2, f3, f4, f5) (v1, v2, v3, v4, v5) = 
+let of_tuple5 (f1, f2, f3, f4, f5) (v1, v2, v3, v4, v5) =
   TPL [f1 v1; f2 v2; f3 v3; f4 v4; f5 v5]
 
 (** {2 Formating}
@@ -105,9 +105,9 @@ open Format
 
 let pp_odn ?(opened_modules=[]) fmt t =
 
-  let opened_modules = 
+  let opened_modules =
     (* Use opened modules starting with the bigger *)
-    List.sort 
+    List.sort
       (fun mod1 mod2 -> String.length mod2 - String.length mod1)
       opened_modules
   in
@@ -125,7 +125,7 @@ let pp_odn ?(opened_modules=[]) fmt t =
             tl
   in
 
-  let pp_print_id fmt id =  
+  let pp_print_id fmt id =
     let chop_opened_module str =
       try
         let str_len =
@@ -152,7 +152,7 @@ let pp_odn ?(opened_modules=[]) fmt t =
         in
 
           String.sub str chop_prefix_len (str_len - chop_prefix_len)
-            
+
       with Not_found ->
         str
     in
@@ -163,16 +163,16 @@ let pp_odn ?(opened_modules=[]) fmt t =
     function
       | REC (mod_nm, flds) ->
           begin
-            match flds with 
+            match flds with
               | (hd_fld, hd_e) :: tl ->
                   (* We get the first field to add
                    * the module name at the beginning
                    *)
                   begin
                     let pp_field fmt (fld, e) =
-                      fprintf fmt 
-                        "@[<hv 2>%a =@ %a@];@ " 
-                        pp_print_id fld 
+                      fprintf fmt
+                        "@[<hv 2>%a =@ %a@];@ "
+                        pp_print_id fld
                         pp_odn_aux e
                     in
 
@@ -202,12 +202,12 @@ let pp_odn ?(opened_modules=[]) fmt t =
           pp_print_bool fmt b
       | TPL [] ->
           pp_print_string fmt "()"
-      | TPL [(FLT _) as v] 
+      | TPL [(FLT _) as v]
       | TPL [(INT _) as v]
       | TPL [(STR _) as v]
-      | TPL [(REC _) as v] 
-      | TPL [(LST _) as v] 
-      | TPL [(BOO _) as v] 
+      | TPL [(REC _) as v]
+      | TPL [(LST _) as v]
+      | TPL [(BOO _) as v]
       | TPL [UNT as v]
       | TPL [(VAR _) as v] ->
           pp_odn_aux fmt v
@@ -226,13 +226,13 @@ let pp_odn ?(opened_modules=[]) fmt t =
             "@[<hv 2>%a%a%a@]"
             pp_print_id fnm
 
-            (pp_list 
-               (fun fmt (nm, e) -> 
-                  fprintf fmt "@ ~%s:%a" nm pp_odn_aux e) "") 
+            (pp_list
+               (fun fmt (nm, e) ->
+                  fprintf fmt "@ ~%s:%a" nm pp_odn_aux e) "")
             named_args
 
-            (pp_list 
-               (fun fmt e -> 
+            (pp_list
+               (fun fmt e ->
                   fprintf fmt "@ %a" pp_odn_aux e) "")
             args
       | VAR nm ->
@@ -240,7 +240,7 @@ let pp_odn ?(opened_modules=[]) fmt t =
       | PVR (nm, None) ->
           pp_print_id fmt ("`"^nm)
       | PVR (nm, Some tpl) ->
-          fprintf fmt 
+          fprintf fmt
             "@[<hv 2>`%a@ %a@]"
             pp_print_id nm
             pp_odn_aux tpl
@@ -250,7 +250,7 @@ let pp_odn ?(opened_modules=[]) fmt t =
 
 
 let string_of_odn ?opened_modules odn =
-  let buff = 
+  let buff =
     Buffer.create 13
   in
   let fmt =

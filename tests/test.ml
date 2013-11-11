@@ -21,7 +21,7 @@
 (******************************************************************************)
 
 (** Main for tests
-   
+
     @author Sylvain Le Gall
   *)
 
@@ -30,10 +30,10 @@ open TestCommon;;
 open FileUtil;;
 open ODN;;
 
-let dbug = 
+let dbug =
   ref false
 
-let _res: test_result list = 
+let _res: test_result list =
   let odn_path =
     Filename.concat (Sys.getcwd ()) (Filename.concat "_build" "src")
   in
@@ -43,21 +43,21 @@ let _res: test_result list =
   let pa_noodn_cma =
     Filename.concat odn_path "pa_noodn.cma"
   in
-  let pa_type_conv_cma = 
+  let pa_type_conv_cma =
     Filename.concat TestConf.pkg_type_conv_dir "pa_type_conv.cma"
   in
-  let test_files (dir, fns) = 
+  let test_files (dir, fns) =
     let nm =
-      match fns with 
+      match fns with
         | [fn] ->
             dir^"/"^fn
         | lst ->
-            dir^"/("^(String.concat "|" fns)^")" 
+            dir^"/("^(String.concat "|" fns)^")"
     in
       nm >::
-      (bracket 
+      (bracket
          (fun () ->
-            let pwd = 
+            let pwd =
               Sys.getcwd ()
             in
               Sys.chdir dir;
@@ -65,29 +65,29 @@ let _res: test_result list =
          (fun _ ->
             if !dbug then
               begin
-                List.iter 
+                List.iter
                   (fun fn ->
                      print_endline ("File "^fn^": ");
                      assert_command
-                       "camlp4o" 
-                       [pa_type_conv_cma; pa_odn_cma; 
+                       "camlp4o"
+                       [pa_type_conv_cma; pa_odn_cma;
                         "Camlp4OCamlPrinter.cmo"; fn];
                      assert_command
                        "camlp4o"
                        [pa_type_conv_cma; pa_odn_cma;
-                        "Camlp4AstLifter.cmo"; "Camlp4OCamlPrinter.cmo"; 
+                        "Camlp4AstLifter.cmo"; "Camlp4OCamlPrinter.cmo";
                         fn])
                   fns
               end;
-            
+
             assert_command
               "ocamlfind"
               (["ocamlc"; "-g"; "-o"; "test"; "-I"; odn_path;
                 "-package"; "type-conv"; "-syntax";  "camlp4o";
                 "-ppopt"; pa_odn_cma; "odn.cma"] @ fns)))
          (fun old_cwd ->
-            rm 
-              (filter 
+            rm
+              (filter
                  (Or
                     (Has_extension "cmi",
                      Has_extension "cmo"))
@@ -101,15 +101,15 @@ let _res: test_result list =
        [
          "pure-odn" >::
          (fun () ->
-            assert_equal 
+            assert_equal
               ~msg:"variant-simple"
               "Test"
               (string_of_odn (VRT("Test", [])));
             assert_equal
               ~msg:"variant-module"
               "Test"
-              (string_of_odn 
-                 ~opened_modules:["MyTest"]  
+              (string_of_odn
+                 ~opened_modules:["MyTest"]
                  (VRT("MyTest.Test", []))));
 
          test_files
@@ -119,10 +119,10 @@ let _res: test_result list =
          test_files
            ("tests/data/",
             ["tuples.ml"]);
-     
+
          "oasis-example no odn" >::
          (fun () ->
-            let regexps = 
+            let regexps =
               [
                 Str.regexp_string "TYPE_CONV_PATH";
                 Str.regexp "with  *odn";
@@ -133,31 +133,31 @@ let _res: test_result list =
                 let _i : int =
                   Str.search_forward regexp str 0
                 in
-                  assert_failure 
-                    (Printf.sprintf 
-                       "Found '%s' in string '%s'" 
-                       (Str.matched_string str) 
+                  assert_failure
+                    (Printf.sprintf
+                       "Found '%s' in string '%s'"
+                       (Str.matched_string str)
                        str)
               with Not_found ->
                 ()
             in
-            let foutput strm = 
+            let foutput strm =
               (* Check that output doesn't contain regexp defined
                * before
                *)
-              let buff = 
+              let buff =
                 Buffer.create 13
               in
-              let check_buffer () = 
+              let check_buffer () =
                 let ln =
                   Buffer.contents buff
                 in
-                  List.iter 
+                  List.iter
                     (fun rgxp -> assert_not_match rgxp ln)
                     regexps;
                   Buffer.clear buff
               in
-                Stream.iter 
+                Stream.iter
                   (function
                      | '\n' ->
                          check_buffer ()
@@ -168,14 +168,14 @@ let _res: test_result list =
             in
 
               (* Create a file without odn in it *)
-              assert_command 
+              assert_command
                 ~foutput
-                "camlp4o" 
-                [pa_type_conv_cma; pa_noodn_cma; 
+                "camlp4o"
+                [pa_type_conv_cma; pa_noodn_cma;
                  "Camlp4OCamlPrinter.cmo";
                  "tests/data/oasis-examples/OASISTypes.ml"]
          );
-         
+
          test_files
             ("tests/data/",
              ["polyvariants.ml"]);

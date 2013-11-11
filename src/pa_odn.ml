@@ -20,7 +20,7 @@
 (* Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA              *)
 (******************************************************************************)
 
-(** Syntax extension that adds function converting 
+(** Syntax extension that adds function converting
     data into ODN.t using type declaration to guess
     how to do.
 
@@ -49,9 +49,9 @@ let odn_patt_name _loc tn =
 ;;
 
 let rec odn_of_tuple _loc tps =
-    let patts, exprs, _ = 
-      List.fold_left 
-      (fun (acc_patt, acc_expr, i) tp -> 
+    let patts, exprs, _ =
+      List.fold_left
+      (fun (acc_patt, acc_expr, i) tp ->
          let vnm =
            "v"^(string_of_int i)
          in
@@ -59,24 +59,24 @@ let rec odn_of_tuple _loc tps =
            <:expr< $odn_of_type _loc tp$ $lid:vnm$ >> :: acc_expr,
            i + 1)
       ([], [], 0)
-      (List.rev 
+      (List.rev
          (list_of_ctyp tps []))
     in
-    let patt = 
-      match patts with 
+    let patt =
+      match patts with
         | [patt] -> patt
         | _ -> <:patt<($tup:paCom_of_list patts$)>>
     in
-      <:expr<fun $patt$ -> 
+      <:expr<fun $patt$ ->
         ODN.TPL($Gen.mk_expr_lst _loc exprs$)>>
 
-and odn_of_variants _loc vrts = 
-  let lst = 
+and odn_of_variants _loc vrts =
+  let lst =
     list_of_ctyp vrts []
   in
 
-  let lst' = 
-    List.map 
+  let lst' =
+    List.map
       (function
          | <:ctyp<`$cnstr$>> ->
              <:match_case<`$cnstr$ -> ODN.PVR ($str:cnstr$, None) >>
@@ -85,7 +85,7 @@ and odn_of_variants _loc vrts =
                let vnm = "tpl" in
                let var_expr = <:expr< $lid:vnm$ >> in
                let var_patt = <:patt< $lid:vnm$ >> in
-               let expr = 
+               let expr =
                  <:expr<$odn_of_tuple _loc tps$ $var_expr$>>
                in
                  <:match_case<`$uid:cnstr$ $var_patt$ ->
@@ -98,16 +98,16 @@ and odn_of_variants _loc vrts =
     <:expr<function $mcOr_of_list lst'$>>
 
 and odn_of_type _loc =
-  function 
+  function
     | <:ctyp<$id:id$>> ->
         begin
-          match Gen.get_rev_id_path id [] with 
+          match Gen.get_rev_id_path id [] with
             | ["unit"] ->   <:expr<ODN.of_unit>>
             | ["bool"] ->   <:expr<ODN.of_bool>>
             | ["string"] -> <:expr<ODN.of_string>>
             | ["int"]    -> <:expr<ODN.of_int>>
             | ["float"]  -> <:expr<ODN.of_float>>
-            | tn :: rev_path  -> 
+            | tn :: rev_path  ->
                 <:expr<$id:odn_id_name _loc tn rev_path$>>
             | [] ->
                 assert false
@@ -132,9 +132,9 @@ let odn_of_alias _loc ctp =
   <:expr<$odn_of_type _loc ctp$>>
 ;;
 
-let odn_of_sum _loc ctp = 
+let odn_of_sum _loc ctp =
   let sum_def =
-    let sum_name nm = 
+    let sum_name nm =
       get_conv_path ()^"."^nm
     in
     let rec sum_fold _loc =
@@ -144,9 +144,9 @@ let odn_of_sum _loc ctp =
         | TyId (_loc, IdUid(_, cnstr)) ->
             <:match_case<$uid:cnstr$ -> ODN.VRT($str:sum_name cnstr$,[])>>
         | TyOf (_loc, TyId(_, IdUid(_, cnstr)), tps) ->
-            let patts, exprs, _ = 
-              List.fold_left 
-              (fun (acc_patt, acc_expr, i) tp -> 
+            let patts, exprs, _ =
+              List.fold_left
+              (fun (acc_patt, acc_expr, i) tp ->
                  let vnm =
                    "v"^(string_of_int i)
                  in
@@ -154,15 +154,15 @@ let odn_of_sum _loc ctp =
                    <:expr< $odn_of_type _loc tp$ $lid:vnm$ >> :: acc_expr,
                    i + 1)
               ([], [], 0)
-              (List.rev 
+              (List.rev
                  (list_of_ctyp tps []))
             in
-            let patt = 
-              match patts with 
+            let patt =
+              match patts with
                 | [patt] -> patt
                 | _ -> <:patt<($tup:paCom_of_list patts$)>>
             in
-              <:match_case<$uid:cnstr$ $patt$ -> 
+              <:match_case<$uid:cnstr$ $patt$ ->
                 ODN.VRT($str:sum_name cnstr$, $Gen.mk_expr_lst _loc exprs$)>>
         | ty ->
             assert false
@@ -172,24 +172,24 @@ let odn_of_sum _loc ctp =
     <:expr<function $sum_def$>>
 ;;
 
-let odn_of_record _loc ctp = 
-  let rec_def = 
-    let rec rec_map = 
-      function 
+let odn_of_record _loc ctp =
+  let rec_def =
+    let rec rec_map =
+      function
         | TyCol(_loc, TyId(_, IdLid(_, nm)), ctp) ->
             <:expr<$str:nm$, $odn_of_type _loc ctp$ v.$lid:nm$>>
-        | ty -> 
+        | ty ->
             assert false
     in
      List.map rec_map (list_of_ctyp ctp [])
  in
     <:expr<
-       fun v -> 
-         ODN.REC ($str:get_conv_path ()$, 
+       fun v ->
+         ODN.REC ($str:get_conv_path ()$,
               $Gen.mk_expr_lst _loc rec_def$)>>
 ;;
 
-let odn_of_mani _loc ctp1 ctp2 = 
+let odn_of_mani _loc ctp1 ctp2 =
   dbug "mani";
   assert false
 ;;
@@ -199,11 +199,11 @@ let odn_of_nil _loc =
   assert false
 ;;
 
-let odn_of _ tp = 
-  let rec odn_aux = 
+let odn_of _ tp =
+  let rec odn_aux =
     function
       | TyDcl (_loc, type_name, tps, rhs, _cl) ->
-          let body = 
+          let body =
             Gen.switch_tp_def
               ~alias:odn_of_alias
               ~sum:odn_of_sum
@@ -214,11 +214,11 @@ let odn_of _ tp =
               rhs
           in
           let patts =
-            List.map 
+            List.map
               (fun tp -> odn_patt_name _loc (Gen.get_tparam_id tp))
               tps
           in
-          let fun_name = 
+          let fun_name =
             odn_id_name _loc type_name []
           in
             <:binding<$id:fun_name$ = $Gen.abstract _loc patts body$>>
@@ -227,21 +227,21 @@ let odn_of _ tp =
       | _ ->
           assert false
   in
-  let _loc, recursive = 
+  let _loc, recursive =
     match tp with
-      | TyDcl (_loc, type_name, _, rhs, _) -> 
+      | TyDcl (_loc, type_name, _, rhs, _) ->
           _loc, Gen.type_is_recursive type_name rhs
-      | TyAnd (_loc, _, _) -> 
+      | TyAnd (_loc, _, _) ->
           _loc, true
       | _ -> assert false
   in
     if recursive then
-      <:str_item<let rec $odn_aux tp$>> 
+      <:str_item<let rec $odn_aux tp$>>
     else
-      <:str_item<let $odn_aux tp$>> 
+      <:str_item<let $odn_aux tp$>>
 ;;
 
-add_generator 
+add_generator
   "odn"
   odn_of
 ;;

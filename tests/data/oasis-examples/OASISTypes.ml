@@ -47,7 +47,7 @@ type license =
   | LGPL
   | LGPL_link_exn
   | Other of url
-  | PublicDomain 
+  | PublicDomain
     with odn
 ;;
 
@@ -56,40 +56,40 @@ type license =
 type compiled_object =
   | Byte
   | Native
-  | Best 
+  | Best
     with odn
 ;;
 
 (** Package dependency
   *)
-type dependency = 
+type dependency =
   | FindlibPackage of package_name * version_constraint option
-  | InternalLibrary of name 
+  | InternalLibrary of name
     with odn
 ;;
 
-(** Possible VCS 
+(** Possible VCS
   *)
-type vcs = 
-  | Darcs 
-  | Git 
-  | Svn 
-  | Cvs 
-  | Hg 
-  | Bzr 
-  | Arch 
-  | Monotone 
+type vcs =
+  | Darcs
+  | Git
+  | Svn
+  | Cvs
+  | Hg
+  | Bzr
+  | Arch
+  | Monotone
     with odn
 ;;
 
-(** Available test 
+(** Available test
   *)
-type expr_test = 
+type expr_test =
   | TOs_type
   | TSystem
   | TArchitecture
   | TCcomp_type
-  | TOCaml_version 
+  | TOCaml_version
     with odn
 ;;
 
@@ -101,7 +101,7 @@ type expr =
   | EAnd of expr * expr
   | EOr of expr * expr
   | EFlag of string
-  | ETest of expr_test * string 
+  | ETest of expr_test * string
     with odn
 ;;
 
@@ -112,9 +112,9 @@ type 'a conditional =
     with odn
 ;;
 
-(** Library definition 
+(** Library definition
   *)
-type library = 
+type library =
     {
       lib_build:           bool conditional;
       lib_install:         bool conditional;
@@ -129,9 +129,9 @@ type library =
     } with odn
 ;;
 
-(** Executable definition 
+(** Executable definition
   *)
-type executable = 
+type executable =
     {
       exec_build:           bool conditional;
       exec_install:         bool conditional;
@@ -147,9 +147,9 @@ type executable =
     } with odn
 ;;
 
-(** Command line flag defintion 
+(** Command line flag defintion
   *)
-type flag = 
+type flag =
     {
       flag_description:  string option;
       flag_default:      bool conditional;
@@ -159,7 +159,7 @@ type flag =
 
 (** Source repository definition
   *)
-type source_repository = 
+type source_repository =
     {
       src_repo_type:        vcs;
       src_repo_location:    url;
@@ -174,7 +174,7 @@ type source_repository =
 
 (** Test definition
   *)
-type test = 
+type test =
     {
       test_type:               string;
       test_command:            string;
@@ -187,7 +187,7 @@ type test =
 
 (** OASIS file whole content
   *)
-type package = 
+type package =
     {
       oasis_version:  version;
       ocaml_version:  version_constraint option;

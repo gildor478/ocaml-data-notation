@@ -14,21 +14,21 @@ Homepage:     http://forge.ocamlcore.org/projects/odn
 
 Description:
   This library uses `type_conv` to dump OCaml data structures using OCaml data
-  notation. 
-  . 
+  notation.
+  .
   This kind of data dumping helps to write OCaml code generator, like OASIS.
 
 Library odn
   Path:    src
   Modules: ODN
-  
+
 Library pa_odn
   Path:               src
   Modules:            Pa_odn
   FindlibParent:      odn
   FindlibContainers:  with
   FindlibName:        syntax
-  BuildDepends:       type_conv (>= 108.07.01), camlp4.lib, camlp4.quotations.o 
+  BuildDepends:       type_conv (>= 108.07.01), camlp4.lib, camlp4.quotations.o
   CompiledObject:     byte
   XMETAType:          syntax
   XMETARequires:      type_conv, camlp4, odn
@@ -40,7 +40,7 @@ Library pa_noodn
   FindlibParent:      odn
   FindlibContainers:  without
   FindlibName:        syntax
-  BuildDepends:       type_conv, camlp4.lib, camlp4.quotations.o 
+  BuildDepends:       type_conv, camlp4.lib, camlp4.quotations.o
   CompiledObject:     byte
   XMETAType:          syntax
   XMETARequires:      type_conv, camlp4
@@ -52,7 +52,7 @@ Executable test
   Install:      false
   Build$:       flag(tests)
   BuildDepends: oUnit (>= 1.1.0), fileutils (>= 0.4.0), odn, str
-  
+
 Test main
   Run$:    flag(tests)
   Command: $test

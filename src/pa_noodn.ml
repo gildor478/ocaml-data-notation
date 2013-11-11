@@ -20,7 +20,7 @@
 (* Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA              *)
 (******************************************************************************)
 
-(** Syntax extension that removes "with odn" 
+(** Syntax extension that removes "with odn"
     from files.
 
   @author Sylvain Le Gall
@@ -34,7 +34,7 @@ open Pa_type_conv
 add_generator
   "odn"
   (fun _ _ ->
-     let _loc = 
+     let _loc =
        Loc.ghost
      in
        <:str_item<>>)

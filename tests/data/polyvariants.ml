@@ -21,7 +21,7 @@
 (******************************************************************************)
 
 
-TYPE_CONV_PATH "Polyvariants" 
+TYPE_CONV_PATH "Polyvariants"
 
 type 'a t = int with odn
 
