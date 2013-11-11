@@ -20,40 +20,6 @@
 ################################################################################
 
 # OASIS_START
-# DO NOT EDIT (digest: 4189cbe0bfe8f4949c3f9df26e19113f)
-# Ignore VCS directories, you can use the same kind of rule outside 
-# OASIS_START/STOP if you want to exclude directories that contains 
-# useless stuff for the build process
-<**/.svn>: -traverse
-<**/.svn>: not_hygienic
-".bzr": -traverse
-".bzr": not_hygienic
-".hg": -traverse
-".hg": not_hygienic
-".git": -traverse
-".git": not_hygienic
-"_darcs": -traverse
-"_darcs": not_hygienic
-# Library odn
-"src/odn.cmxs": use_odn
-# Library pa_odn
-"src/pa_odn.cmxs": use_pa_odn
-# Library pa_noodn
-"src/pa_noodn.cmxs": use_pa_noodn
-<src/*.ml{,i}>: pkg_type_conv
-<src/*.ml{,i}>: pkg_camlp4.lib
-<src/*.ml{,i}>: pkg_camlp4.quotations.o
-# Executable test
-"tests/test.byte": use_odn
-"tests/test.byte": pkg_oUnit
-"tests/test.byte": pkg_fileutils
-"tests/test.byte": pkg_str
-<tests/*.ml{,i}>: use_odn
-<tests/*.ml{,i}>: pkg_oUnit
-<tests/*.ml{,i}>: pkg_fileutils
-<tests/*.ml{,i}>: pkg_str
 # OASIS_STOP
 <src/pa_odn.ml>: syntax_camlp4o
 <src/pa_noodn.ml>: syntax_camlp4o
-"build": not_hygienic
-"build": -traverse
