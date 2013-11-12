@@ -140,7 +140,7 @@ deploy: headache fix-perms
 	# TODO: create a plugin to create documentation.
 	# oasis doc-dist
 	admin-gallu-deploy --verbose \
-	  --forge_upload --forge_group ocaml-data-notation --forge_user gildor-admin
+	  --forge_upload --forge_group odn --forge_user gildor-admin
 	# TODO: when oasis doc-dist will work, re-add.
 	#  --forge_extra_file "dist/ocaml-data-notation-doc-$(shell oasis query version).tar.gz"
 	# TODO: create a plugin to send announcement.
