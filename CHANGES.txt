@@ -1,13 +1,13 @@
 2013-11-12 Sylvain Le Gall <syvlain .A.T. le-gall.net>
 
-  * New version 0.0.10
+  * New version 0.0.11
   * Port test suite to OUnit 2.0.0
   * Fix handling of long record that may split at the end of the line with a
     blank.
 
 2012-10-06 Sylvain Le Gall <syvlain .A.T. le-gall.net>
 
-  * New version 0.0.9
+  * New version 0.0.10
   * Use type_conv 108.07.01 (Closes: #1226)
 
 2012-05-23 Sylvain Le Gall <sylvain .A.T. le-gall.net>
