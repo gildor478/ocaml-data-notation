@@ -163,27 +163,28 @@ let pp_odn ?(opened_modules=[]) fmt t =
     function
       | REC (mod_nm, flds) ->
           begin
-            match flds with
-              | (hd_fld, hd_e) :: tl ->
-                  (* We get the first field to add
-                   * the module name at the beginning
-                   *)
-                  begin
-                    let pp_field fmt (fld, e) =
-                      fprintf fmt
-                        "@[<hv 2>%a =@ %a@];@ "
-                        pp_print_id fld
-                        pp_odn_aux e
-                    in
-
-                    fprintf fmt "@[{@[<hv 2>@,";
-                    pp_field fmt (mod_nm^"."^hd_fld, hd_e);
-                    List.iter (pp_field fmt) tl;
-                    fprintf fmt "@]@,}@]"
-                  end
-
-              | [] ->
-                  fprintf fmt "{}"
+            let rec print_fields fmt first fields =
+              let print_field fmt (fld, e) =
+                fprintf fmt
+                  "@[<hv 2>%a =@ %a@]"
+                  (* We use the first field to add the module name at the
+                   * beginning. *)
+                  pp_print_id (if first then mod_nm^"."^fld else fld)
+                  pp_odn_aux e
+              in
+              match fields with
+                | [fld, e] ->
+                    print_field fmt (fld, e)
+                | (fld, e) :: tl ->
+                    print_field fmt (fld, e);
+                    fprintf fmt ";@ ";
+                    print_fields fmt false tl
+                | [] ->
+                    ()
+            in
+              fprintf fmt "@[{@[<hv 2>@,";
+              print_fields fmt true flds;
+              fprintf fmt "@]@,}@]"
           end
 
       | LST lst ->

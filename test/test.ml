@@ -100,7 +100,24 @@ let () =
             "Test"
             (string_of_odn
                ~opened_modules:["MyTest"]
-               (VRT("MyTest.Test", []))));
+               (VRT("MyTest.Test", [])));
+          assert_equal
+            ~msg:"long-record"
+            ~printer:(fun s -> s)
+            "{foo = 123456; bar = 123456; baz = 123456; foo1 = 123456; \
+              foo2 = 1; foo3 = 1}"
+            (string_of_odn
+               ~opened_modules:["Bar"]
+               (REC("Bar",
+                    [
+                      "foo", INT 123456;
+                      "bar", INT 123456;
+                      "baz", INT 123456;
+                      "foo1", INT 123456;
+                      "foo2", INT 1;
+                      "foo3", INT 1;
+                    ])));
+       ());
 
        test_files
          ("oasis-examples",
