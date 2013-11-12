@@ -8,7 +8,7 @@ Authors:      Sylvain Le Gall
 License:      LGPL-2.1 with OCaml linking exception
 LicenseFile:  COPYING.txt
 Plugins:      StdFiles (0.2), DevFiles (0.2), META (0.2)
-FilesAB:      tests/TestConf.ml.ab
+FilesAB:      test/TestConf.ml.ab
 BuildTools:   ocamlbuild
 Homepage:     http://forge.ocamlcore.org/projects/odn
 
@@ -47,11 +47,11 @@ Library pa_noodn
   XMETADescription:   Syntax extension that removes 'with odn'
 
 Executable test
-  Path:         tests
+  Path:         test
   MainIs:       test.ml
   Install:      false
   Build$:       flag(tests)
-  BuildDepends: oUnit (>= 1.1.0), fileutils (>= 0.4.0), odn, str
+  BuildDepends: oUnit (>= 2.0.0), fileutils (>= 0.4.0), odn, str
 
 Test main
   Run$:    flag(tests)

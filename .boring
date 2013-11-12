@@ -116,5 +116,5 @@
 ^_build$
 ^setup.data$
 ^setup.log$
-^tests/TestConf.ml$
+^test/TestConf.ml$
 ^dist$
