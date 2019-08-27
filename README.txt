@@ -1,3 +1,5 @@
+This project is deprecated.
+
 (* OASIS_START *)
 (* DO NOT EDIT (digest: 4580838bd3518403dce6c41cd6248982) *)
 This is the README file for the ocaml-data-notation distribution.
